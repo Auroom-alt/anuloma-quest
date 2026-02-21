@@ -234,22 +234,24 @@ function MainMenu({ heroName, character }: { heroName: string; character: Charac
           <span style={{ color: '#FBBF24', fontFamily: 'Georgia, serif' }}>{heroName}</span>
         </p>
 
-        <button style={styles.btnGold} onClick={() => router.push('/setup')}>
-          🌬️ Начать практику
-        </button>
-       <button style={styles.btnGlass} onClick={() => router.push('/map')}>
-        🗺️ Карта пути
-        </button>
-        <button style={styles.btnGlass}>
-          ⚙️ Настройки
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '260px', margin: '0 auto' }}>
+  <button style={styles.btnGold} onClick={() => router.push('/setup')}>
+    🌬️ Начать практику
+  </button>
+  <button style={styles.btnGlass} onClick={() => router.push('/map')}>
+    🗺️ Карта пути
+  </button>
+  <button style={styles.btnGlass} onClick={() => router.push('/settings')}>
+    ⚙️ Настройки
+  </button>
+</div>
 
-        <button
-          onClick={reset}
-          style={{ marginTop: '2rem', color: '#334155', fontSize: '0.8rem', background: 'none', border: 'none', cursor: 'pointer' }}
-        >
-          Начать заново
-        </button>
+<button
+  onClick={reset}
+  style={{ marginTop: '1.5rem', color: '#334155', fontSize: '0.8rem', background: 'none', border: 'none', cursor: 'pointer' }}
+>
+  Начать заново
+</button>
 
       </div>
     </main>
