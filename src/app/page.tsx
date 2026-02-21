@@ -237,8 +237,8 @@ function MainMenu({ heroName, character }: { heroName: string; character: Charac
         <button style={styles.btnGold} onClick={() => router.push('/setup')}>
           🌬️ Начать практику
         </button>
-        <button style={styles.btnGlass}>
-          🗺️ Карта пути
+       <button style={styles.btnGlass} onClick={() => router.push('/map')}>
+        🗺️ Карта пути
         </button>
         <button style={styles.btnGlass}>
           ⚙️ Настройки

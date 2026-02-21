@@ -108,13 +108,14 @@ export default function PracticePage() {
     phase?.nostril === 'left' ? '#60A5FA' : '#FBBF24';
 
   if (finished) return (
-    <FinishScreen
-      heroName={profile?.heroName ?? 'Герой'}
-      rounds={rounds}
-      onRepeat={() => { stop(); router.push('/setup'); }}
-      onHome={() => { stop(); router.push('/'); }}
-    />
-  );
+  <FinishScreen
+    heroName={profile?.heroName ?? 'Герой'}
+    rounds={rounds}
+    onRepeat={() => { stop(); router.push('/setup'); }}
+    onHome={() => { stop(); router.push('/'); }}
+    onMap={() => { stop(); router.push('/map'); }}
+  />
+);
 
   return (
     <main style={{ ...styles.page, background: `radial-gradient(ellipse at 50% 30%, ${glowColor}18 0%, transparent 60%), #030712` }}>
@@ -243,8 +244,12 @@ export default function PracticePage() {
   );
 }
 
-function FinishScreen({ heroName, rounds, onRepeat, onHome }: {
-  heroName: string; rounds: number; onRepeat: () => void; onHome: () => void;
+function FinishScreen({ heroName, rounds, onRepeat, onHome, onMap }: {
+  heroName: string;
+  rounds: number;
+  onRepeat: () => void;
+  onHome: () => void;
+  onMap: () => void;
 }) {
   return (
     <main style={{ minHeight: '100vh', background: '#030712', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
@@ -263,7 +268,10 @@ function FinishScreen({ heroName, rounds, onRepeat, onHome }: {
           <button onClick={onRepeat} style={{ background: 'linear-gradient(135deg, #F59E0B, #FBBF24)', color: '#0a0a0a', fontWeight: 700, fontSize: '1rem', padding: '0.85rem 2rem', borderRadius: '999px', border: 'none', cursor: 'pointer' }}>
             🔄 Повторить практику
           </button>
-          <button onClick={onHome} style={{ background: 'rgba(255,255,255,0.05)', color: '#94A3B8', fontSize: '1rem', padding: '0.85rem 2rem', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
+          <button onClick={onMap} style={{ background: 'rgba(255,255,255,0.05)', color: '#A78BFA', fontSize: '1rem', padding: '0.85rem 2rem', borderRadius: '999px', border: '1px solid rgba(167,139,250,0.2)', cursor: 'pointer' }}>
+            🗺️ Карта пути
+          </button>
+          <button onClick={onHome} style={{ background: 'none', color: '#334155', fontSize: '0.9rem', padding: '0.5rem', border: 'none', cursor: 'pointer' }}>
             🏠 На главную
           </button>
         </div>

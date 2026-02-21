@@ -28,6 +28,7 @@ export interface Location {
 }
 
 export interface UserProfile {
+  totalBreathCycles: number;
   heroName: string;
   character: CharacterGender;
   totalRoundsCompleted: number;
