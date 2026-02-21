@@ -53,3 +53,46 @@ export interface SessionState {
   secondsInPhase: number;
   totalSecondsElapsed: number;
 }
+// ── APP SETTINGS ──────────────────────────────────────
+export interface SoundSettings {
+  voiceEnabled: boolean;
+  voiceLanguage: 'ru' | 'en' | 'sanskrit';
+  voiceStyle: 'short' | 'detailed';
+  voiceVolume: number;
+  drumEnabled: boolean;
+  drumVolume: number;
+  guitarEnabled: boolean;
+  guitarVolume: number;
+}
+
+export interface MusicSettings {
+  musicEnabled: boolean;
+  musicVolume: number;
+  syncWithBreath: boolean;
+  natureSoundsEnabled: boolean;
+  natureSoundsVolume: number;
+}
+
+export interface VisualSettings {
+  colorTheme: 'dark' | 'light' | 'auto';
+  glowIntensity: 'low' | 'medium' | 'high';
+  dotStyle: 'circles' | 'crystals' | 'stars';
+  characterAnimationEnabled: boolean;
+  animationAmplitude: 'small' | 'medium' | 'large';
+  transitionSpeed: 'soft' | 'fast';
+}
+
+export interface AccessibilitySettings {
+  subtitlesEnabled: boolean;
+  highContrastMode: boolean;
+  hapticFeedback: boolean;
+  largeFontMode: boolean;
+  eyesClosedMode: boolean;
+}
+
+export interface AppSettings {
+  sound: SoundSettings;
+  music: MusicSettings;
+  visual: VisualSettings;
+  accessibility: AccessibilitySettings;
+}

@@ -63,3 +63,39 @@ export function getPhasesForCycle(cycle: BreathingCycle) {
     { phase: 'exhale-left'  as const, duration: cycle.exhale, labelRu: 'Выдох левой',  nostril: 'left'  as const, type: 'exhale' as const },
   ];
 }
+import type { AppSettings } from '@/types';
+
+export const DEFAULT_SETTINGS: AppSettings = {
+  sound: {
+    voiceEnabled: true,
+    voiceLanguage: 'ru',
+    voiceStyle: 'short',
+    voiceVolume: 80,
+    drumEnabled: false,
+    drumVolume: 60,
+    guitarEnabled: false,
+    guitarVolume: 70,
+  },
+  music: {
+    musicEnabled: true,
+    musicVolume: 40,
+    syncWithBreath: true,
+    natureSoundsEnabled: true,
+    natureSoundsVolume: 50,
+  },
+  visual: {
+    colorTheme: 'dark',
+    glowIntensity: 'medium',
+    dotStyle: 'crystals',
+    characterAnimationEnabled: true,
+    animationAmplitude: 'medium',
+    transitionSpeed: 'soft',
+  },
+  accessibility: {
+    subtitlesEnabled: false,
+    highContrastMode: false,
+    hapticFeedback: true,
+    largeFontMode: false,
+    eyesClosedMode: false,
+  },
+};

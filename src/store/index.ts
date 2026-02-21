@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { UserProfile, CharacterGender, PracticeSettings, SessionState, BreathingCycle } from '@/types';
-import { BREATHING_CYCLES, DEFAULT_CYCLE_INDEX, DEFAULT_ROUNDS, calcTotalSeconds } from '@/constants';
+import type { UserProfile, CharacterGender, SessionState, BreathingCycle, AppSettings } from '@/types';
+import { BREATHING_CYCLES, DEFAULT_CYCLE_INDEX, DEFAULT_ROUNDS, calcTotalSeconds, DEFAULT_SETTINGS } from '@/constants';
 
 // ── PROFILE ──────────────────────────────────────────
 interface ProfileStore {
@@ -142,3 +142,28 @@ export const useSessionStore = create<SessionStore>()((set) => ({
     },
   })),
 }));
+// ── SETTINGS ──────────────────────────────────────────
+
+
+interface AppSettingsStore {
+  settings: AppSettings;
+  updateSound: (data: Partial<AppSettings['sound']>) => void;
+  updateMusic: (data: Partial<AppSettings['music']>) => void;
+  updateVisual: (data: Partial<AppSettings['visual']>) => void;
+  updateAccessibility: (data: Partial<AppSettings['accessibility']>) => void;
+  resetSettings: () => void;
+}
+
+export const useSettingsStore = create<AppSettingsStore>()(
+  persist(
+    (set) => ({
+      settings: DEFAULT_SETTINGS,
+      updateSound: (data) => set(s => ({ settings: { ...s.settings, sound: { ...s.settings.sound, ...data } } })),
+      updateMusic: (data) => set(s => ({ settings: { ...s.settings, music: { ...s.settings.music, ...data } } })),
+      updateVisual: (data) => set(s => ({ settings: { ...s.settings, visual: { ...s.settings.visual, ...data } } })),
+      updateAccessibility: (data) => set(s => ({ settings: { ...s.settings, accessibility: { ...s.settings.accessibility, ...data } } })),
+      resetSettings: () => set({ settings: DEFAULT_SETTINGS }),
+    }),
+    { name: 'anuloma-settings' }
+  )
+);
