@@ -2,14 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { usePracticeSettings, useSessionStore, useProfileStore } from '@/store';
+import { usePracticeSettings, useSessionStore, useProfileStore, useSettingsStore } from '@/store';
 import { getPhasesForCycle, formatTime, CYCLES_PER_ROUND, ROUND_PAUSE_SECONDS, LOCATIONS } from '@/constants';
+import { playPhaseSound, playGong, playOm, speak, stopSpeech } from '@/lib/audio';
 
 export default function PracticePage() {
   const router = useRouter();
   const { rounds, cycle } = usePracticeSettings();
   const { session, start, pause, resume, stop, tick, nextPhase, advanceCycle, advanceRound } = useSessionStore();
   const { addCompletedRound, profile } = useProfileStore();
+  const { settings } = useSettingsStore();
 
   const [roundPause, setRoundPause] = useState(false);
   const [pauseCount, setPauseCount] = useState(ROUND_PAUSE_SECONDS);
@@ -24,17 +26,18 @@ export default function PracticePage() {
   // Старт при входе
   useEffect(() => {
     start();
+    playOm();
     return () => {
       if (intervalRef.current)  clearInterval(intervalRef.current);
       if (countdownRef.current) clearInterval(countdownRef.current);
+      stopSpeech();
     };
   }, []);
 
-  // Главный тик — 1 раз в секунду
+  // Главный тик
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (!session.isActive || session.isPaused || roundPause || finished) return;
-
     intervalRef.current = setInterval(() => tick(), 1000);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [session.isActive, session.isPaused, roundPause, finished]);
@@ -49,6 +52,22 @@ export default function PracticePage() {
 
   function handlePhaseEnd() {
     const isLastPhase = session.currentPhaseIndex === 5;
+    const nextIndex = isLastPhase ? 0 : session.currentPhaseIndex + 1;
+    const upcomingPhase = phases[nextIndex];
+
+    // Звук следующей фазы
+    playPhaseSound(upcomingPhase.type, {
+      guitar: settings.sound.guitarEnabled,
+      drum:   settings.sound.drumEnabled,
+      guitarVolume: settings.sound.guitarVolume,
+      drumVolume:   settings.sound.drumVolume,
+    });
+
+    // Голос
+    if (settings.sound.voiceEnabled) {
+      speak(upcomingPhase.labelRu, settings.sound.voiceVolume / 100);
+    }
+
     if (isLastPhase) {
       if (session.currentCycle >= CYCLES_PER_ROUND) {
         handleRoundEnd();
@@ -63,6 +82,7 @@ export default function PracticePage() {
   function handleRoundEnd() {
     const roundSeconds = (cycle.inhale + cycle.hold + cycle.exhale) * 2 * CYCLES_PER_ROUND;
     addCompletedRound(roundSeconds);
+    playGong();
 
     if (session.currentRound >= rounds) {
       setFinished(true);
@@ -91,6 +111,7 @@ export default function PracticePage() {
 
   function handleStop() {
     stop();
+    stopSpeech();
     router.push('/');
   }
 
@@ -102,25 +123,23 @@ export default function PracticePage() {
 
   const phaseProgress = phase ? Math.min(1, session.secondsInPhase / phase.duration) : 0;
   const remaining     = phase ? Math.max(0, phase.duration - session.secondsInPhase) : 0;
-
   const glowColor =
     phase?.type === 'hold' ? '#A78BFA' :
     phase?.nostril === 'left' ? '#60A5FA' : '#FBBF24';
 
   if (finished) return (
-  <FinishScreen
-    heroName={profile?.heroName ?? 'Герой'}
-    rounds={rounds}
-    onRepeat={() => { stop(); router.push('/setup'); }}
-    onHome={() => { stop(); router.push('/'); }}
-    onMap={() => { stop(); router.push('/map'); }}
-  />
-);
+    <FinishScreen
+      heroName={profile?.heroName ?? 'Герой'}
+      rounds={rounds}
+      onRepeat={() => { stop(); router.push('/setup'); }}
+      onHome={() => { stop(); router.push('/'); }}
+      onMap={() => { stop(); router.push('/map'); }}
+    />
+  );
 
   return (
     <main style={{ ...styles.page, background: `radial-gradient(ellipse at 50% 30%, ${glowColor}18 0%, transparent 60%), #030712` }}>
 
-      {/* ШАПКА */}
       <div style={styles.header}>
         <div>
           <p style={styles.locationName}>{location.emoji} {location.nameRu}</p>
@@ -132,7 +151,6 @@ export default function PracticePage() {
         </div>
       </div>
 
-      {/* ПАУЗА МЕЖДУ РАУНДАМИ */}
       {roundPause && (
         <div style={styles.roundPauseBox}>
           <p style={{ color: '#A78BFA', fontSize: '1.3rem', marginBottom: '0.5rem' }}>✦ Раунд завершён</p>
@@ -142,21 +160,17 @@ export default function PracticePage() {
           <p style={{ color: '#334155', fontStyle: 'italic', fontSize: '0.85rem', marginBottom: '1rem' }}>
             «Почувствуй покой. Подготовься к следующему шагу.»
           </p>
-          <button style={styles.skipBtn} onClick={skipPause}>
-            Пропустить паузу →
-          </button>
+          <button style={styles.skipBtn} onClick={skipPause}>Пропустить паузу →</button>
         </div>
       )}
 
-      {/* ПЕРСОНАЖ */}
       {!roundPause && (
         <div style={styles.characterWrap}>
           {phase?.nostril === 'left' && (
             <div style={{ ...styles.nostrilGlow, left: '10%', background: '#60A5FA' }} />
           )}
           <div style={{
-            fontSize: '8rem',
-            display: 'inline-block',
+            fontSize: '8rem', display: 'inline-block',
             filter: `drop-shadow(0 0 24px ${glowColor}90)`,
             animation: phase?.type === 'hold' ? 'pulse-soft 2s ease-in-out infinite' : 'breathe 4s ease-in-out infinite',
             transition: 'filter 0.8s ease',
@@ -169,13 +183,10 @@ export default function PracticePage() {
         </div>
       )}
 
-      {/* ФАЗА */}
       {!roundPause && (
         <>
           <div style={{ textAlign: 'center' as const, marginBottom: '1.25rem' }}>
-            <p style={{ color: '#475569', fontSize: '0.75rem', letterSpacing: '0.2em', marginBottom: '0.4rem' }}>
-              СЕЙЧАС
-            </p>
+            <p style={{ color: '#475569', fontSize: '0.75rem', letterSpacing: '0.2em', marginBottom: '0.4rem' }}>СЕЙЧАС</p>
             <p style={{ fontFamily: 'Georgia, serif', fontSize: '1.8rem', fontWeight: 700, color: glowColor, marginBottom: '0.25rem', transition: 'color 0.5s ease' }}>
               {phase?.labelRu}
             </p>
@@ -185,12 +196,10 @@ export default function PracticePage() {
             <p style={{ color: '#334155', fontSize: '0.8rem' }}>секунд</p>
           </div>
 
-          {/* Прогресс-бар */}
           <div style={styles.progressWrap}>
             <div style={{ ...styles.progressBar, width: `${phaseProgress * 100}%`, background: `linear-gradient(90deg, ${glowColor}66, ${glowColor})` }} />
           </div>
 
-          {/* 6 точек */}
           <div style={styles.dots}>
             {phases.map((p, i) => {
               const isActive = i === session.currentPhaseIndex;
@@ -198,8 +207,7 @@ export default function PracticePage() {
               const c = p.type === 'hold' ? '#A78BFA' : p.nostril === 'left' ? '#60A5FA' : '#FBBF24';
               return (
                 <div key={i} style={{
-                  width:  isActive ? '14px' : '10px',
-                  height: isActive ? '14px' : '10px',
+                  width: isActive ? '14px' : '10px', height: isActive ? '14px' : '10px',
                   borderRadius: '50%',
                   background: isActive ? c : isDone ? `${c}44` : 'rgba(255,255,255,0.08)',
                   boxShadow: isActive ? `0 0 12px 4px ${c}99` : 'none',
@@ -209,7 +217,6 @@ export default function PracticePage() {
             })}
           </div>
 
-          {/* Подсказки фаз */}
           <div style={styles.phaseHints}>
             {phases.map((p, i) => {
               const c = p.type === 'hold' ? '#A78BFA' : p.nostril === 'left' ? '#60A5FA' : '#FBBF24';
@@ -224,13 +231,11 @@ export default function PracticePage() {
         </>
       )}
 
-      {/* ЦИТАТА */}
       <div style={styles.quoteBox}>
         <p style={styles.quoteText}>«{location.quote}»</p>
         <p style={styles.quoteSource}>— {location.quoteSource}</p>
       </div>
 
-      {/* УПРАВЛЕНИЕ */}
       <div style={styles.controls}>
         <button style={styles.controlBtn} onClick={handlePause}>
           {session.isPaused ? '▶ Продолжить' : '⏸ Пауза'}
@@ -245,19 +250,14 @@ export default function PracticePage() {
 }
 
 function FinishScreen({ heroName, rounds, onRepeat, onHome, onMap }: {
-  heroName: string;
-  rounds: number;
-  onRepeat: () => void;
-  onHome: () => void;
-  onMap: () => void;
+  heroName: string; rounds: number;
+  onRepeat: () => void; onHome: () => void; onMap: () => void;
 }) {
   return (
     <main style={{ minHeight: '100vh', background: '#030712', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
       <div style={{ textAlign: 'center' as const }}>
         <div style={{ fontSize: '5rem', marginBottom: '1.5rem' }}>🕉️</div>
-        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '2rem', color: '#FBBF24', marginBottom: '1rem' }}>
-          Путь завершён
-        </h1>
+        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '2rem', color: '#FBBF24', marginBottom: '1rem' }}>Путь завершён</h1>
         <p style={{ color: '#94A3B8', lineHeight: 1.8, marginBottom: '0.5rem' }}>
           {heroName} завершил {rounds} раундов дыхания.
         </p>
