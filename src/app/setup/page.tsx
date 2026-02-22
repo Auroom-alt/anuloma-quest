@@ -152,7 +152,7 @@ function PhaseBar({ label, seconds, color, total }: {
 }
 
 const styles = {
-  page: { minHeight: '100vh', background: 'radial-gradient(ellipse at 30% 40%, rgba(96,165,250,0.06) 0%, transparent 50%), radial-gradient(ellipse at 70% 60%, rgba(167,139,250,0.05) 0%, transparent 50%), #030712', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' } as React.CSSProperties,
+  page: { minHeight: '100vh', background: 'radial-gradient(ellipse at 30% 40%, rgba(96,165,250,0.06) 0%, transparent 50%), radial-gradient(ellipse at 70% 60%, rgba(167,139,250,0.05) 0%, transparent 50%), #030712', display: 'flex', alignItems: 'flex-start', justifyContent: 'center',  padding: '1.5rem 1rem 3rem', } as React.CSSProperties,
   container: { width: '100%', maxWidth: '480px', textAlign: 'center' as const },
   backBtn: { background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: '0.9rem', marginBottom: '1.5rem', display: 'block' } as React.CSSProperties,
   label: { color: '#475569', letterSpacing: '0.2em', fontSize: '0.75rem', marginBottom: '0.5rem' },

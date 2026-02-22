@@ -245,19 +245,13 @@ const styles = {
   },
 
   locationsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-    gap: '0.75rem',
-    marginBottom: '2rem',
-    textAlign: 'left' as const,
-  },
-
-  locCard: {
-    borderRadius: '1rem',
-    padding: '1rem',
-    transition: 'all 0.3s ease',
-    cursor: 'default',
-  } as React.CSSProperties,
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+  gap: 'clamp(0.5rem, 2vw, 0.75rem)',
+  width: '100%',
+  maxWidth: '520px',
+  margin: '0 auto',
+} as React.CSSProperties,
 
   locHeader: {
     display: 'flex', justifyContent: 'space-between',
@@ -292,5 +286,19 @@ const styles = {
     cursor: 'pointer', width: '100%',
     marginBottom: '2rem',
     boxShadow: '0 0 20px 4px rgba(251,191,36,0.2)',
+  } as React.CSSProperties,
+
+  locCard: {
+    borderRadius: '1rem',
+    padding: '1.2rem 0.8rem',
+    minHeight: '180px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    transition: 'all 0.3s ease',
+    cursor: 'pointer',
+    marginBottom: '0.5rem',
+    boxSizing: 'border-box',
   } as React.CSSProperties,
 };

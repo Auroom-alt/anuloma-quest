@@ -43,3 +43,44 @@ body {
   background: rgba(167,139,250,0.4);
   border-radius: 2px;
 }
+/* Базовый сброс для мобильных */
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+html, body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Анимации персонажа */
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.06); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { transform: scale(1);    opacity: 1;    }
+  50%       { transform: scale(1.03); opacity: 0.85; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+/* Скроллбар невидимый */
+::-webkit-scrollbar { display: none; }
+* { scrollbar-width: none; }
+
+/* Touch-friendly — минимальный размер тапа */
+button {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Убираем zoom при фокусе на input iOS */
+input, select, textarea {
+  font-size: 16px !important;
+}

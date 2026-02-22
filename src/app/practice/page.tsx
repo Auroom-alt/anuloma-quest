@@ -593,8 +593,23 @@ function FinishScreen({ heroName, rounds, onRepeat, onHome, onMap, currentLocati
 }
 
 const styles = {
-  page: { minHeight: '100vh', display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', padding: '1.5rem 1rem', transition: 'background 1s ease' },
-  header: { display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '480px', marginBottom: '1.5rem', padding: '0.75rem 1.25rem', background: 'rgba(255,255,255,0.03)', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.06)' } as React.CSSProperties,
+  page: {
+    minHeight: '100vh',
+    minHeight: '100dvh', // dynamic viewport height для мобильных
+    display: 'flex', flexDirection: 'column' as const,
+    alignItems: 'center', justifyContent: 'center',
+    padding: 'clamp(1rem, 4vw, 1.5rem) 1rem',
+    transition: 'background 1s ease',
+  },
+   header: {
+    display: 'flex', justifyContent: 'space-between',
+    width: '100%', maxWidth: '480px',
+    marginBottom: 'clamp(0.75rem, 2vw, 1.5rem)',
+    padding: '0.6rem 1rem',
+    background: 'rgba(255,255,255,0.03)',
+    borderRadius: '1rem',
+    border: '1px solid rgba(255,255,255,0.06)',
+  } as React.CSSProperties,
   locationName: { color: '#94A3B8', fontSize: '0.9rem', marginBottom: '0.2rem' },
   roundInfo:    { color: '#475569', fontSize: '0.78rem' },
   timer:        { color: '#FBBF24', fontFamily: 'Georgia, serif', fontSize: '1.1rem' },
