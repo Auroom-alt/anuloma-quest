@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePracticeSettings, useSessionStore, useProfileStore, useSettingsStore } from '@/store';
 import { getPhasesForCycle, formatTime, CYCLES_PER_ROUND, ROUND_PAUSE_SECONDS, LOCATIONS } from '@/constants';
-import { playPhaseSound, playGong, playOm, stopOm, playBgSound, stopBgSound, speak, stopSpeech } from '@/lib/audio';
+import { playPhaseSound, playGong, playOm, playBgSound, stopBgSound, stopSpeech } from '@/lib/audio';
 
 export default function PracticePage() {
   const router = useRouter();
@@ -23,33 +23,29 @@ export default function PracticePage() {
   const phase    = phases[session.currentPhaseIndex];
   const location = LOCATIONS[Math.min(10, session.currentRound) - 1];
 
-  // Старт при входе
+  // Старт при входе — один раз
   useEffect(() => {
     start();
     playOm();
+    if (settings.music.natureSoundsEnabled) {
+      playBgSound(1, settings.music.natureSoundsVolume / 100);
+    }
     return () => {
       if (intervalRef.current)  clearInterval(intervalRef.current);
       if (countdownRef.current) clearInterval(countdownRef.current);
       stopSpeech();
+      stopBgSound();
     };
   }, []);
 
   // Главный тик
   useEffect(() => {
-  start();
-  // Фоновый звук текущей локации
-  if (settings.music.natureSoundsEnabled) {
-    const locationId = Math.min(10, session.currentRound);
-    playBgSound(locationId, settings.music.natureSoundsVolume / 100);
-  }
-  playOm();
-  return () => {
-    if (intervalRef.current)  clearInterval(intervalRef.current);
-    if (countdownRef.current) clearInterval(countdownRef.current);
-    stopSpeech();
-    stopBgSound();
-  };
-}, []);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (!session.isActive || session.isPaused || roundPause || finished) return;
+    intervalRef.current = setInterval(() => tick(), 1000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [session.isActive, session.isPaused, roundPause, finished]);
+
   // Следим за сменой фазы
   useEffect(() => {
     if (!session.isActive || session.isPaused || !phase) return;
@@ -63,16 +59,29 @@ export default function PracticePage() {
     const nextIndex = isLastPhase ? 0 : session.currentPhaseIndex + 1;
     const upcomingPhase = phases[nextIndex];
 
-    // Звук следующей фазы
-    playPhaseSound(upcomingPhase.phase, upcomingPhase.type, {
-  guitar: settings.sound.guitarEnabled,
-  drum:   settings.sound.drumEnabled,
-  guitarVolume: settings.sound.guitarVolume,
-  drumVolume:   settings.sound.drumVolume,
-  voice: settings.sound.voiceEnabled,
-  voiceVolume: settings.sound.voiceVolume,
-  voiceLang: settings.sound.voiceLanguage === 'en' ? 'en' : 'ru',
-});
+    try {
+      playPhaseSound(upcomingPhase.phase, upcomingPhase.type, {
+        guitar: settings.sound.guitarEnabled,
+        drum:   settings.sound.drumEnabled,
+        guitarVolume: settings.sound.guitarVolume,
+        drumVolume:   settings.sound.drumVolume,
+        voice: settings.sound.voiceEnabled,
+        voiceVolume: settings.sound.voiceVolume,
+        voiceLang: settings.sound.voiceLanguage === 'en' ? 'en' : 'ru',
+      });
+    } catch (e) {
+      console.error('audio error:', e);
+    }
+
+    if (isLastPhase) {
+      if (session.currentCycle >= CYCLES_PER_ROUND) {
+        handleRoundEnd();
+      } else {
+        advanceCycle();
+      }
+    } else {
+      nextPhase();
+    }
   }
 
   function handleRoundEnd() {
@@ -83,6 +92,11 @@ export default function PracticePage() {
     if (session.currentRound >= rounds) {
       setFinished(true);
       return;
+    }
+
+    // Фон новой локации
+    if (settings.music.natureSoundsEnabled) {
+      playBgSound(Math.min(10, session.currentRound + 1), settings.music.natureSoundsVolume / 100);
     }
 
     setRoundPause(true);
@@ -108,6 +122,7 @@ export default function PracticePage() {
   function handleStop() {
     stop();
     stopSpeech();
+    stopBgSound();
     router.push('/');
   }
 

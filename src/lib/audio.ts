@@ -62,52 +62,55 @@ export function playDrumExhale(volume = 0.8) {
 }
 
 // ─── ГИТАРНЫЙ АККОРД (Web Audio) ─────────────────────
-function playGuitarChord(frequencies: number[], duration: number, volume = 0.18) {
+function pluckString(frequency: number, duration: number, volume = 0.3, delay = 0) {
   const c = getCtx();
+  const bufferSize = Math.round(c.sampleRate / frequency);
+  const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
+  const data = buffer.getChannelData(0);
 
-  frequencies.forEach((freq, i) => {
-    const osc  = c.createOscillator();
-    const gain = c.createGain();
-    const filter = c.createBiquadFilter();
+  // Заполняем шумом — имитация удара по струне
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = Math.random() * 2 - 1;
+  }
 
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(c.destination);
+  const source = c.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
 
-    // Пилообразная волна + фильтр = ближе к гитаре
-    osc.type = 'sawtooth';
-    filter.type = 'lowpass';
-    filter.frequency.value = 1200;
-    filter.Q.value = 0.8;
+  // Фильтр усредняет — струна затухает
+  const filter = c.createIIRFilter([0.5, 0.5], [1]);
+  const gain   = c.createGain();
 
-    const delay = i * 0.04; // арпеджио — струны по очереди
-    osc.frequency.setValueAtTime(freq, c.currentTime + delay);
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(c.destination);
 
-    gain.gain.setValueAtTime(0, c.currentTime + delay);
-    gain.gain.linearRampToValueAtTime(volume, c.currentTime + delay + 0.02);
-    gain.gain.exponentialRampToValueAtTime(volume * 0.3, c.currentTime + delay + 0.3);
-    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + delay + duration);
+  gain.gain.setValueAtTime(volume, c.currentTime + delay);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + delay + duration);
 
-    osc.start(c.currentTime + delay);
-    osc.stop(c.currentTime + delay + duration);
-  });
+  source.start(c.currentTime + delay);
+  source.stop(c.currentTime + delay + duration);
 }
 
-// F мажор — вдох (F3, A3, C4, F4)
-export function playInhaleChord(volume = 0.18) {
+function playGuitarChord(frequencies: number[], duration: number, volume = 0.25) {
+  frequencies.forEach((freq, i) => {
+    pluckString(freq, duration, volume, i * 0.05);
+  });
+}
+// F мажор — вдох
+export function playInhaleChord(volume = 0.25) {
   playGuitarChord([174.61, 220, 261.63, 349.23], 2.5, volume);
 }
 
-// A минор — выдох (A2, E3, A3, C4)
-export function playExhaleChord(volume = 0.18) {
+// A минор — выдох
+export function playExhaleChord(volume = 0.25) {
   playGuitarChord([110, 164.81, 220, 261.63], 2.5, volume);
 }
 
-// C мажор — задержка (C3, G3, C4, E4) — спокойный
-export function playHoldChord(volume = 0.12) {
+// C мажор — задержка
+export function playHoldChord(volume = 0.18) {
   playGuitarChord([130.81, 196, 261.63, 329.63], 3, volume);
 }
-
 // ─── ГОНГ (завершение раунда) ─────────────────────────
 export function playGong(volume = 0.3) {
   const c = getCtx();
@@ -211,19 +214,34 @@ export function speak(
   if (typeof window === 'undefined' || !window.speechSynthesis) return;
 
   const text = VOICE_TEXTS[lang]?.[phaseKey] ?? phaseKey;
-
   window.speechSynthesis.cancel();
-  const utt  = new SpeechSynthesisUtterance(text);
-  utt.lang   = lang === 'en' ? 'en-US' : 'ru-RU';
-  utt.volume = volume;
-  utt.rate   = 0.82;
-  utt.pitch  = 0.95;
 
-  // Пробуем найти лучший голос
-  const voice = getBestVoice(lang);
-  if (voice) utt.voice = voice;
+  const trySpeak = () => {
+    const utt  = new SpeechSynthesisUtterance(text);
+    utt.lang   = lang === 'en' ? 'en-US' : 'ru-RU';
+    utt.volume = volume;
+    utt.rate   = 0.82;
+    utt.pitch  = 0.95;
 
-  window.speechSynthesis.speak(utt);
+    const voices = window.speechSynthesis.getVoices();
+    const langCode = lang === 'en' ? 'en' : 'ru';
+    const best = voices.find(v =>
+      v.name.toLowerCase().includes('google') && v.lang.startsWith(langCode)
+    ) ?? voices.find(v => v.lang.startsWith(langCode));
+
+    if (best) utt.voice = best;
+    window.speechSynthesis.speak(utt);
+  };
+
+  // Голоса могут ещё не загрузиться
+  if (window.speechSynthesis.getVoices().length > 0) {
+    trySpeak();
+  } else {
+    window.speechSynthesis.onvoiceschanged = () => {
+      trySpeak();
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }
 }
 
 export function stopSpeech() {
