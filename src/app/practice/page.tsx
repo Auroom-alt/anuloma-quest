@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePracticeSettings, useSessionStore, useProfileStore, useSettingsStore } from '@/store';
 import { getPhasesForCycle, formatTime, CYCLES_PER_ROUND, ROUND_PAUSE_SECONDS, LOCATIONS } from '@/constants';
-import { playPhaseSound, playGong, playOm, speak, stopSpeech } from '@/lib/audio';
+import { playPhaseSound, playGong, playOm, stopOm, playBgSound, stopBgSound, speak, stopSpeech } from '@/lib/audio';
 
 export default function PracticePage() {
   const router = useRouter();
@@ -36,12 +36,20 @@ export default function PracticePage() {
 
   // Главный тик
   useEffect(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    if (!session.isActive || session.isPaused || roundPause || finished) return;
-    intervalRef.current = setInterval(() => tick(), 1000);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [session.isActive, session.isPaused, roundPause, finished]);
-
+  start();
+  // Фоновый звук текущей локации
+  if (settings.music.natureSoundsEnabled) {
+    const locationId = Math.min(10, session.currentRound);
+    playBgSound(locationId, settings.music.natureSoundsVolume / 100);
+  }
+  playOm();
+  return () => {
+    if (intervalRef.current)  clearInterval(intervalRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    stopSpeech();
+    stopBgSound();
+  };
+}, []);
   // Следим за сменой фазы
   useEffect(() => {
     if (!session.isActive || session.isPaused || !phase) return;
@@ -56,27 +64,15 @@ export default function PracticePage() {
     const upcomingPhase = phases[nextIndex];
 
     // Звук следующей фазы
-    playPhaseSound(upcomingPhase.type, {
-      guitar: settings.sound.guitarEnabled,
-      drum:   settings.sound.drumEnabled,
-      guitarVolume: settings.sound.guitarVolume,
-      drumVolume:   settings.sound.drumVolume,
-    });
-
-    // Голос
-    if (settings.sound.voiceEnabled) {
-      speak(upcomingPhase.labelRu, settings.sound.voiceVolume / 100);
-    }
-
-    if (isLastPhase) {
-      if (session.currentCycle >= CYCLES_PER_ROUND) {
-        handleRoundEnd();
-      } else {
-        advanceCycle();
-      }
-    } else {
-      nextPhase();
-    }
+    playPhaseSound(upcomingPhase.phase, upcomingPhase.type, {
+  guitar: settings.sound.guitarEnabled,
+  drum:   settings.sound.drumEnabled,
+  guitarVolume: settings.sound.guitarVolume,
+  drumVolume:   settings.sound.drumVolume,
+  voice: settings.sound.voiceEnabled,
+  voiceVolume: settings.sound.voiceVolume,
+  voiceLang: settings.sound.voiceLanguage === 'en' ? 'en' : 'ru',
+});
   }
 
   function handleRoundEnd() {
