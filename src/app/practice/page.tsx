@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { usePracticeSettings, useSessionStore, useProfileStore, useSettingsStore } from '@/store';
 import { getPhasesForCycle, formatTime, CYCLES_PER_ROUND, ROUND_PAUSE_SECONDS, LOCATIONS } from '@/constants';
 import { playPhaseSound, playGong, playOm, playBgSound, stopBgSound, stopSpeech, playBirds, stopBirds, BIRDS_TRACKS } from '@/lib/audio';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function PracticePage() {
   const router = useRouter();
@@ -219,12 +220,31 @@ export default function PracticePage() {
         <>
           <div style={{ textAlign: 'center' as const, marginBottom: '1.25rem' }}>
             <p style={{ color: '#475569', fontSize: '0.75rem', letterSpacing: '0.2em', marginBottom: '0.4rem' }}>СЕЙЧАС</p>
-            <p style={{ fontFamily: 'Georgia, serif', fontSize: '1.8rem', fontWeight: 700, color: glowColor, marginBottom: '0.25rem', transition: 'color 0.5s ease' }}>
-              {phase?.labelRu}
-            </p>
-            <p style={{ fontFamily: 'Georgia, serif', fontSize: '4rem', fontWeight: 700, color: '#F1F5F9', lineHeight: 1 }}>
-              {remaining}
-            </p>
+           <AnimatePresence mode="wait">
+  <motion.p
+    key={phase?.labelRu}
+    initial={{ opacity: 0, y: 8 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -8 }}
+    transition={{ duration: 0.3 }}
+    style={{ fontFamily: 'Georgia, serif', fontSize: '1.8rem', fontWeight: 700, color: glowColor, marginBottom: '0.25rem' }}
+  >
+    {phase?.labelRu}
+  </motion.p>
+</AnimatePresence>
+
+<AnimatePresence mode="wait">
+  <motion.p
+    key={remaining}
+    initial={{ opacity: 0, scale: 0.8 }}
+    animate={{ opacity: 1, scale: 1 }}
+    exit={{ opacity: 0, scale: 1.2 }}
+    transition={{ duration: 0.2 }}
+    style={{ fontFamily: 'Georgia, serif', fontSize: '4rem', fontWeight: 700, color: '#F1F5F9', lineHeight: 1 }}
+  >
+    {remaining}
+  </motion.p>
+</AnimatePresence>
             <p style={{ color: '#334155', fontSize: '0.8rem' }}>секунд</p>
           </div>
 

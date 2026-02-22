@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProfileStore, useSettingsStore } from '@/store';
 import { BIRDS_TRACKS, playBirds, stopBirds } from '@/lib/audio';
+import PageTransition from '@/components/PageTransition';
+
+
 
 
 type Tab = 'sound' | 'visual' | 'profile';
@@ -18,6 +21,14 @@ export default function SettingsPage() {
   return (
     <main style={styles.page}>
       <div style={styles.container}>
+        // в return:
+return (
+  <PageTransition>
+    <main style={styles.page}>
+      ...
+    </main>
+  </PageTransition>
+);
 
         {/* ШАПКА */}
         <button onClick={() => router.push('/')} style={styles.backBtn}>← Назад</button>

@@ -3,6 +3,10 @@
 import { useRouter } from 'next/navigation';
 import { useProfileStore } from '@/store';
 import { LOCATIONS } from '@/constants';
+import PageTransition from '@/components/PageTransition';
+import { motion } from 'framer-motion';
+
+
 
 export default function MapPage() {
   const router = useRouter();
@@ -19,6 +23,13 @@ export default function MapPage() {
   return (
     <main style={styles.page}>
       <div style={styles.container}>
+        return (
+  <PageTransition>
+    <main style={styles.page}>
+      ...
+    </main>
+  </PageTransition>
+);
 
         {/* ШАПКА */}
         <button onClick={() => router.push('/')} style={styles.backBtn}>← Назад</button>
@@ -87,22 +98,27 @@ function LocationCard({ loc, index, isUnlocked, isCurrent, isCompleted }: {
   isCompleted: boolean;
 }) {
   return (
-    <div style={{
-      ...styles.locCard,
-      opacity: isUnlocked ? 1 : 0.35,
-      border: isCurrent
-        ? '1px solid rgba(167,139,250,0.5)'
-        : isCompleted
-        ? '1px solid rgba(251,191,36,0.25)'
-        : '1px solid rgba(255,255,255,0.06)',
-      boxShadow: isCurrent ? '0 0 20px 4px rgba(167,139,250,0.2)' : 'none',
-      background: isCompleted
-        ? 'rgba(251,191,36,0.05)'
-        : isCurrent
-        ? 'rgba(167,139,250,0.07)'
-        : 'rgba(255,255,255,0.03)',
-    }}>
-
+    <motion.div
+      initial={{ opacity: 0, scale: 0.92 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3, delay: index * 0.05 }}
+      whileHover={{ scale: 1.04, transition: { duration: 0.15 } }}
+      style={{
+        ...styles.locCard,
+        opacity: isUnlocked ? 1 : 0.35,
+        border: isCurrent
+          ? '1px solid rgba(167,139,250,0.5)'
+          : isCompleted
+          ? '1px solid rgba(251,191,36,0.25)'
+          : '1px solid rgba(255,255,255,0.06)',
+        boxShadow: isCurrent ? '0 0 20px 4px rgba(167,139,250,0.2)' : 'none',
+        background: isCompleted
+          ? 'rgba(251,191,36,0.05)'
+          : isCurrent
+          ? 'rgba(167,139,250,0.07)'
+          : 'rgba(255,255,255,0.03)',
+      }}
+    >
       {/* Номер и статус */}
       <div style={styles.locHeader}>
         <span style={{ color: '#334155', fontSize: '0.75rem' }}>#{loc.id}</span>
@@ -140,8 +156,7 @@ function LocationCard({ loc, index, isUnlocked, isCurrent, isCompleted }: {
           «{loc.quote}»
         </p>
       )}
-
-    </div>
+    </motion.div>
   );
 }
 

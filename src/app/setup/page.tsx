@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePracticeSettings, useProfileStore } from '@/store';
-import { BREATHING_CYCLES, LOCATIONS, formatDuration, calcTotalSeconds } from '@/constants';
+import { BREATHING_CYCLES, LOCATIONS, formatDuration, calcTotalSeconds } from '@/constants';import PageTransition from '@/components/PageTransition';
+
+
 
 export default function SetupPage() {
   const router = useRouter();
@@ -15,6 +17,14 @@ export default function SetupPage() {
   return (
     <main style={styles.page}>
       <div style={styles.container}>
+        // в return:
+return (
+  <PageTransition>
+    <main style={styles.page}>
+      ...
+    </main>
+  </PageTransition>
+);
 
         <button onClick={() => router.back()} style={styles.backBtn}>← Назад</button>
         <p style={styles.label}>НАСТРОЙКА ПРАКТИКИ</p>
