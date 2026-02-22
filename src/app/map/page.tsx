@@ -23,13 +23,13 @@ export default function MapPage() {
   return (
     <main style={styles.page}>
       <div style={styles.container}>
-        return (
+         (
   <PageTransition>
     <main style={styles.page}>
-      ...
+      
     </main>
   </PageTransition>
-);
+)
 
         {/* ШАПКА */}
         <button onClick={() => router.push('/')} style={styles.backBtn}>← Назад</button>

@@ -21,7 +21,7 @@ export default function SetupPage() {
  (
   <PageTransition>
     <main style={styles.page}>
-      ...
+      
     </main>
   </PageTransition>
 )
