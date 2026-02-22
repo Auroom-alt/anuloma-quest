@@ -4,18 +4,19 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePracticeSettings, useSessionStore, useProfileStore, useSettingsStore } from '@/store';
 import { getPhasesForCycle, formatTime, CYCLES_PER_ROUND, ROUND_PAUSE_SECONDS, LOCATIONS } from '@/constants';
-import { playPhaseSound, playGong, playOm, playBgSound, stopBgSound, stopSpeech, playBirds, stopBirds, setBirdsVolume, BIRDS_TRACKS } from '@/lib/audio';
+import { playPhaseSound, playGong, playOm, playBgSound, stopBgSound, stopSpeech, playBirds, stopBirds, BIRDS_TRACKS } from '@/lib/audio';
 
 export default function PracticePage() {
   const router = useRouter();
   const { rounds, cycle } = usePracticeSettings();
   const { session, start, pause, resume, stop, tick, nextPhase, advanceCycle, advanceRound } = useSessionStore();
   const { addCompletedRound, profile } = useProfileStore();
- const { settings, updateMusic } = useSettingsStore();
+  const { settings, updateMusic } = useSettingsStore();
 
   const [roundPause, setRoundPause] = useState(false);
   const [pauseCount, setPauseCount] = useState(ROUND_PAUSE_SECONDS);
   const [finished, setFinished]     = useState(false);
+  const [audioOpen, setAudioOpen]   = useState(false);
   const intervalRef  = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -23,22 +24,24 @@ export default function PracticePage() {
   const phase    = phases[session.currentPhaseIndex];
   const location = LOCATIONS[Math.min(10, session.currentRound) - 1];
 
-  // Старт при входе — один раз
   useEffect(() => {
     start();
     playOm();
     if (settings.music.natureSoundsEnabled) {
-      playBgSound(1, settings.music.natureSoundsVolume / 100);
+      playBgSound(1, settings.music.musicVolume / 100);
+    }
+    if (settings.music.natureSoundsEnabled) {
+      playBirds(settings.music.selectedBirdsTrack, settings.music.natureSoundsVolume / 100);
     }
     return () => {
       if (intervalRef.current)  clearInterval(intervalRef.current);
       if (countdownRef.current) clearInterval(countdownRef.current);
       stopSpeech();
       stopBgSound();
+      stopBirds();
     };
   }, []);
 
-  // Главный тик
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (!session.isActive || session.isPaused || roundPause || finished) return;
@@ -46,7 +49,6 @@ export default function PracticePage() {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [session.isActive, session.isPaused, roundPause, finished]);
 
-  // Следим за сменой фазы
   useEffect(() => {
     if (!session.isActive || session.isPaused || !phase) return;
     if (session.secondsInPhase >= phase.duration) {
@@ -94,9 +96,8 @@ export default function PracticePage() {
       return;
     }
 
-    // Фон новой локации
-    if (settings.music.natureSoundsEnabled) {
-      playBgSound(Math.min(10, session.currentRound + 1), settings.music.natureSoundsVolume / 100);
+    if (settings.music.musicEnabled) {
+      playBgSound(Math.min(10, session.currentRound + 1), settings.music.musicVolume / 100);
     }
 
     setRoundPause(true);
@@ -123,6 +124,7 @@ export default function PracticePage() {
     stop();
     stopSpeech();
     stopBgSound();
+    stopBirds();
     router.push('/');
   }
 
@@ -137,209 +139,7 @@ export default function PracticePage() {
   const glowColor =
     phase?.type === 'hold' ? '#A78BFA' :
     phase?.nostril === 'left' ? '#60A5FA' : '#FBBF24';
-// ─── АУДИО ПАНЕЛЬ ─────────────────────────────────────
-function AudioPanel({ settings, updateMusic }: {
-  settings: any;
-  updateMusic: (data: any) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const { music } = settings;
 
-  const currentIndex = BIRDS_TRACKS.findIndex(t => t.id === music.selectedBirdsTrack);
-
-  function prevTrack() {
-    const i = currentIndex <= 0 ? BIRDS_TRACKS.length - 1 : currentIndex - 1;
-    const track = BIRDS_TRACKS[i];
-    updateMusic({ selectedBirdsTrack: track.id });
-    if (music.natureSoundsEnabled) playBirds(track.id, music.natureSoundsVolume / 100);
-  }
-
-  function nextTrack() {
-    const i = currentIndex >= BIRDS_TRACKS.length - 1 ? 0 : currentIndex + 1;
-    const track = BIRDS_TRACKS[i];
-    updateMusic({ selectedBirdsTrack: track.id });
-    if (music.natureSoundsEnabled) playBirds(track.id, music.natureSoundsVolume / 100);
-  }
-
-  function toggleBirds() {
-    if (music.natureSoundsEnabled) {
-      stopBirds();
-      updateMusic({ natureSoundsEnabled: false });
-    } else {
-      updateMusic({ natureSoundsEnabled: true });
-      playBirds(music.selectedBirdsTrack, music.natureSoundsVolume / 100);
-    }
-  }
-
-  function toggleAllSound() {
-    if (music.musicEnabled) {
-      stopBgSound();
-      stopBirds();
-      updateMusic({ musicEnabled: false, natureSoundsEnabled: false });
-    } else {
-      updateMusic({ musicEnabled: true });
-    }
-  }
-
-  const currentTrack = BIRDS_TRACKS[currentIndex];
-
-  return (
-    <div style={{
-      position: 'fixed' as const,
-      top: '1rem', right: '1rem',
-      zIndex: 100,
-    }}>
-      {/* Кнопка открытия */}
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{
-          background: open ? 'rgba(167,139,250,0.2)' : 'rgba(255,255,255,0.06)',
-          border: `1px solid ${open ? 'rgba(167,139,250,0.4)' : 'rgba(255,255,255,0.1)'}`,
-          borderRadius: '999px',
-          padding: '0.4rem 0.9rem',
-          color: open ? '#A78BFA' : '#64748B',
-          cursor: 'pointer',
-          fontSize: '0.8rem',
-          backdropFilter: 'blur(12px)',
-          transition: 'all 0.2s',
-        }}
-      >
-        🎵 {open ? '✕' : 'Звук'}
-      </button>
-
-      {/* Панель */}
-      {open && (
-        <div style={{
-          marginTop: '0.5rem',
-          background: 'rgba(15,23,42,0.92)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: '1.25rem',
-          padding: '1rem',
-          width: '260px',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-        }}>
-
-          {/* Природа */}
-          <div style={{ marginBottom: '0.75rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <span style={{ color: '#64748B', fontSize: '0.75rem', letterSpacing: '0.1em' }}>🌿 ПРИРОДА</span>
-              <button
-                onClick={toggleBirds}
-                style={{
-                  background: music.natureSoundsEnabled ? 'rgba(52,211,153,0.15)' : 'rgba(255,255,255,0.05)',
-                  border: `1px solid ${music.natureSoundsEnabled ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.08)'}`,
-                  color: music.natureSoundsEnabled ? '#34D399' : '#475569',
-                  borderRadius: '999px',
-                  padding: '0.2rem 0.6rem',
-                  fontSize: '0.75rem',
-                  cursor: 'pointer',
-                }}
-              >
-                {music.natureSoundsEnabled ? '● вкл' : '○ выкл'}
-              </button>
-            </div>
-
-            {/* Текущий трек */}
-            <p style={{
-              color: '#94A3B8', fontSize: '0.8rem',
-              textAlign: 'center' as const,
-              marginBottom: '0.5rem',
-              whiteSpace: 'nowrap' as const,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}>
-              {currentTrack?.label ?? '—'}
-            </p>
-
-            {/* Переключение треков */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
-              <button onClick={prevTrack} style={btnSmall}>◀</button>
-              <button
-                onClick={() => {
-                  if (music.natureSoundsEnabled) {
-                    playBirds(music.selectedBirdsTrack, music.natureSoundsVolume / 100);
-                  }
-                }}
-                style={{ ...btnSmall, color: '#A78BFA' }}
-              >
-                ▶
-              </button>
-              <button onClick={nextTrack} style={btnSmall}>▶▶</button>
-            </div>
-          </div>
-
-          {/* Разделитель */}
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', margin: '0.75rem 0' }} />
-
-          {/* Локация */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-            <span style={{ color: '#64748B', fontSize: '0.75rem' }}>🌆 Звук локации</span>
-            <button
-              onClick={() => {
-                if (music.musicEnabled) {
-                  stopBgSound();
-                  updateMusic({ musicEnabled: false });
-                } else {
-                  updateMusic({ musicEnabled: true });
-                }
-              }}
-              style={{
-                background: music.musicEnabled ? 'rgba(96,165,250,0.15)' : 'rgba(255,255,255,0.05)',
-                border: `1px solid ${music.musicEnabled ? 'rgba(96,165,250,0.3)' : 'rgba(255,255,255,0.08)'}`,
-                color: music.musicEnabled ? '#60A5FA' : '#475569',
-                borderRadius: '999px',
-                padding: '0.2rem 0.6rem',
-                fontSize: '0.75rem',
-                cursor: 'pointer',
-              }}
-            >
-              {music.musicEnabled ? '● вкл' : '○ выкл'}
-            </button>
-          </div>
-
-          {/* Отключить всё */}
-          <button
-            onClick={toggleAllSound}
-            style={{
-              width: '100%',
-              background: !music.musicEnabled && !music.natureSoundsEnabled
-                ? 'rgba(239,68,68,0.1)'
-                : 'rgba(255,255,255,0.04)',
-              border: `1px solid ${!music.musicEnabled && !music.natureSoundsEnabled
-                ? 'rgba(239,68,68,0.2)'
-                : 'rgba(255,255,255,0.06)'}`,
-              color: !music.musicEnabled && !music.natureSoundsEnabled ? '#F87171' : '#475569',
-              borderRadius: '0.75rem',
-              padding: '0.5rem',
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              marginBottom: '0.75rem',
-            }}
-          >
-            {!music.musicEnabled && !music.natureSoundsEnabled ? '🔇 Всё выключено' : '🔇 Выключить всё'}
-          </button>
-
-          {/* Подсказка */}
-          <p style={{ color: '#1E293B', fontSize: '0.7rem', textAlign: 'center' as const }}>
-            Подробные настройки → Главная → ⚙️
-          </p>
-
-        </div>
-      )}
-    </div>
-  );
-}
-
-const btnSmall: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.1)',
-  color: '#94A3B8',
-  borderRadius: '0.5rem',
-  padding: '0.3rem 0.7rem',
-  fontSize: '0.8rem',
-  cursor: 'pointer',
-};
   if (finished) return (
     <FinishScreen
       heroName={profile?.heroName ?? 'Герой'}
@@ -352,6 +152,16 @@ const btnSmall: React.CSSProperties = {
 
   return (
     <main style={{ ...styles.page, background: `radial-gradient(ellipse at 50% 30%, ${glowColor}18 0%, transparent 60%), #030712` }}>
+
+      <AudioPanel
+        settings={settings}
+        updateMusic={updateMusic}
+        open={audioOpen}
+        setOpen={setAudioOpen}
+        locationId={Math.min(10, session.currentRound)}
+        onPause={handlePause}
+        isPaused={session.isPaused}
+      />
 
       <div style={styles.header}>
         <div>
@@ -449,10 +259,6 @@ const btnSmall: React.CSSProperties = {
         <p style={styles.quoteSource}>— {location.quoteSource}</p>
       </div>
 
-      {/* ЗВУКОВАЯ ПАНЕЛЬ */}
-      <AudioPanel settings={settings} updateMusic={updateMusic} />
-
-      {/* УПРАВЛЕНИЕ */}
       <div style={styles.controls}>
         <button style={styles.controlBtn} onClick={handlePause}>
           {session.isPaused ? '▶ Продолжить' : '⏸ Пауза'}
@@ -466,6 +272,188 @@ const btnSmall: React.CSSProperties = {
   );
 }
 
+// ─── АУДИО ПАНЕЛЬ (снаружи PracticePage!) ─────────────
+const btnSmall: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  color: '#94A3B8', borderRadius: '0.5rem',
+  padding: '0.3rem 0.75rem', fontSize: '0.78rem',
+  cursor: 'pointer', flex: 1, textAlign: 'center' as const,
+};
+
+function AudioPanel({ settings, updateMusic, open, setOpen, locationId, onPause, isPaused }: {
+  settings: any;
+  updateMusic: (data: any) => void;
+  open: boolean;
+  setOpen: (v: boolean | ((prev: boolean) => boolean)) => void;
+  locationId: number;
+  onPause: () => void;
+  isPaused: boolean;
+}) {
+  const { music } = settings;
+  const currentIndex = BIRDS_TRACKS.findIndex((t: any) => t.id === music.selectedBirdsTrack);
+  const currentTrack = BIRDS_TRACKS[currentIndex];
+
+  function prevTrack() {
+    const i = currentIndex <= 0 ? BIRDS_TRACKS.length - 1 : currentIndex - 1;
+    const track = BIRDS_TRACKS[i];
+    updateMusic({ selectedBirdsTrack: track.id });
+    if (music.natureSoundsEnabled) playBirds(track.id, music.natureSoundsVolume / 100);
+  }
+
+  function nextTrack() {
+    const i = currentIndex >= BIRDS_TRACKS.length - 1 ? 0 : currentIndex + 1;
+    const track = BIRDS_TRACKS[i];
+    updateMusic({ selectedBirdsTrack: track.id });
+    if (music.natureSoundsEnabled) playBirds(track.id, music.natureSoundsVolume / 100);
+  }
+
+  function toggleBirds() {
+    if (music.natureSoundsEnabled) {
+      stopBirds();
+      updateMusic({ natureSoundsEnabled: false });
+    } else {
+      updateMusic({ natureSoundsEnabled: true });
+      playBirds(music.selectedBirdsTrack, music.natureSoundsVolume / 100);
+    }
+  }
+
+  function toggleLocationSound() {
+    if (music.musicEnabled) {
+      stopBgSound();
+      updateMusic({ musicEnabled: false });
+    } else {
+      updateMusic({ musicEnabled: true });
+      playBgSound(locationId, music.musicVolume / 100);
+    }
+  }
+
+  function toggleAllSound() {
+    const allOff = !music.musicEnabled && !music.natureSoundsEnabled;
+    if (allOff) {
+      updateMusic({ musicEnabled: true, natureSoundsEnabled: true });
+      playBgSound(locationId, music.musicVolume / 100);
+      playBirds(music.selectedBirdsTrack, music.natureSoundsVolume / 100);
+    } else {
+      stopBgSound();
+      stopBirds();
+      updateMusic({ musicEnabled: false, natureSoundsEnabled: false });
+    }
+  }
+
+  const allOff = !music.musicEnabled && !music.natureSoundsEnabled;
+
+  return (
+    <div style={{ position: 'fixed' as const, top: '1rem', right: '1rem', zIndex: 100 }}>
+
+      <button
+        onClick={() => setOpen((o: boolean) => !o)}
+        style={{
+          background: open ? 'rgba(167,139,250,0.2)' : 'rgba(255,255,255,0.06)',
+          border: `1px solid ${open ? 'rgba(167,139,250,0.4)' : 'rgba(255,255,255,0.1)'}`,
+          borderRadius: '999px', padding: '0.4rem 0.9rem',
+          color: open ? '#A78BFA' : '#64748B',
+          cursor: 'pointer', fontSize: '0.8rem',
+          backdropFilter: 'blur(12px)', transition: 'all 0.2s',
+        }}
+      >
+        🎵 {open ? '✕' : 'Звук'}
+      </button>
+
+      {open && (
+        <div style={{
+          marginTop: '0.5rem',
+          background: 'rgba(15,23,42,0.95)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '1.25rem', padding: '1rem',
+          width: '260px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+        }}>
+
+          {/* Пауза */}
+          <button onClick={onPause} style={{
+            width: '100%',
+            background: isPaused ? 'rgba(52,211,153,0.12)' : 'rgba(167,139,250,0.1)',
+            border: `1px solid ${isPaused ? 'rgba(52,211,153,0.3)' : 'rgba(167,139,250,0.25)'}`,
+            color: isPaused ? '#34D399' : '#A78BFA',
+            borderRadius: '0.75rem', padding: '0.55rem',
+            fontSize: '0.85rem', cursor: 'pointer',
+            marginBottom: '0.75rem', fontWeight: 600,
+          }}>
+            {isPaused ? '▶ Продолжить практику' : '⏸ Пауза практики'}
+          </button>
+
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', marginBottom: '0.75rem' }} />
+
+          {/* Природа */}
+          <div style={{ marginBottom: '0.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <span style={{ color: '#64748B', fontSize: '0.75rem' }}>🌿 ПРИРОДА</span>
+              <button onClick={toggleBirds} style={{
+                background: music.natureSoundsEnabled ? 'rgba(52,211,153,0.15)' : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${music.natureSoundsEnabled ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                color: music.natureSoundsEnabled ? '#34D399' : '#475569',
+                borderRadius: '999px', padding: '0.2rem 0.6rem',
+                fontSize: '0.72rem', cursor: 'pointer',
+              }}>
+                {music.natureSoundsEnabled ? '● вкл' : '○ выкл'}
+              </button>
+            </div>
+
+            <p style={{
+              color: music.natureSoundsEnabled ? '#94A3B8' : '#334155',
+              fontSize: '0.78rem', textAlign: 'center' as const,
+              marginBottom: '0.5rem', overflow: 'hidden',
+              textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
+            }}>
+              {currentTrack?.label ?? '—'}
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button onClick={prevTrack} style={btnSmall}>◀ Пред</button>
+              <button onClick={nextTrack} style={btnSmall}>След ▶</button>
+            </div>
+          </div>
+
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', margin: '0.75rem 0' }} />
+
+          {/* Локация */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <span style={{ color: '#64748B', fontSize: '0.75rem' }}>🌆 Звук локации</span>
+            <button onClick={toggleLocationSound} style={{
+              background: music.musicEnabled ? 'rgba(96,165,250,0.15)' : 'rgba(255,255,255,0.05)',
+              border: `1px solid ${music.musicEnabled ? 'rgba(96,165,250,0.3)' : 'rgba(255,255,255,0.08)'}`,
+              color: music.musicEnabled ? '#60A5FA' : '#475569',
+              borderRadius: '999px', padding: '0.2rem 0.6rem',
+              fontSize: '0.72rem', cursor: 'pointer',
+            }}>
+              {music.musicEnabled ? '● вкл' : '○ выкл'}
+            </button>
+          </div>
+
+          {/* Выключить всё */}
+          <button onClick={toggleAllSound} style={{
+            width: '100%',
+            background: allOff ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.04)',
+            border: `1px solid ${allOff ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.06)'}`,
+            color: allOff ? '#F87171' : '#475569',
+            borderRadius: '0.75rem', padding: '0.5rem',
+            fontSize: '0.8rem', cursor: 'pointer', marginBottom: '0.75rem',
+          }}>
+            {allOff ? '🔊 Включить всё' : '🔇 Выключить всё'}
+          </button>
+
+          <p style={{ color: '#1E293B', fontSize: '0.68rem', textAlign: 'center' as const }}>
+            Подробные настройки → Главная → ⚙️
+          </p>
+
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── FINISH SCREEN ────────────────────────────────────
 function FinishScreen({ heroName, rounds, onRepeat, onHome, onMap }: {
   heroName: string; rounds: number;
   onRepeat: () => void; onHome: () => void; onMap: () => void;
