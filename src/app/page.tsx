@@ -242,7 +242,7 @@ function MainMenu({ heroName, character }: { heroName: string; character: Charac
     🗺️ Карта пути
   </button>
   <button style={styles.btnGlass} onClick={() => router.push('/settings')}>
-    ⚙️ Настройки
+    <img src="/images/ui/icon-settings.png" alt="настройки" style={{ width: '24px', height: '24px' }} />
   </button>
 </div>
 

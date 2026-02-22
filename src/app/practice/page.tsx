@@ -161,8 +161,30 @@ export default function PracticePage() {
 );
 
   return (
-    <main style={{ ...styles.page, background: `radial-gradient(ellipse at 50% 30%, ${glowColor}18 0%, transparent 60%), #030712` }}>
+    <main style={{
+      ...styles.page,
+      position: 'relative' as const,
+      background: '#030712',
+    }}>
+      {/* Фоновое изображение локации */}
+      <div style={{
+        position: 'fixed' as const,
+        inset: 0,
+        backgroundImage: `url('/images/bg-0${Math.min(9, location.id)}-${['city','forest','garden','ocean','path','gazebo','spring','meadow','hill','mountain'][location.id - 1]}.jpg')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        opacity: 0.15,
+        zIndex: 0,
+        transition: 'background-image 1.5s ease',
+      }} />
+      <div style={{
+        position: 'fixed' as const,
+        inset: 0,
+        background: `${locationGradient}, rgba(3,7,18,0.75)`,
+        zIndex: 1,
+      }} />
 
+      <div style={{ position: 'relative' as const, zIndex: 2, width: '100%', display: 'flex', flexDirection: 'column' as const, alignItems: 'center' }}>
       <AudioPanel
         settings={settings}
         updateMusic={updateMusic}
@@ -200,19 +222,32 @@ export default function PracticePage() {
       {!roundPause && (
         <div style={styles.characterWrap}>
           {phase?.nostril === 'left' && (
-            <div style={{ ...styles.nostrilGlow, left: '10%', background: '#60A5FA' }} />
-          )}
-          <div style={{
-            fontSize: '8rem', display: 'inline-block',
-            filter: `drop-shadow(0 0 24px ${glowColor}90)`,
-            animation: phase?.type === 'hold' ? 'pulse-soft 2s ease-in-out infinite' : 'breathe 4s ease-in-out infinite',
-            transition: 'filter 0.8s ease',
-          }}>
-            {profile?.character === 'female' ? '🧘‍♀️' : '🧘'}
-          </div>
+  <img src="/images/ui/lung-left.png" alt="левая ноздря" style={{
+    position: 'absolute' as const,
+    left: '5%', height: '80px', opacity: 0.6,
+    filter: `drop-shadow(0 0 12px #60A5FA)`,
+    animation: 'pulse-soft 2s ease-in-out infinite',
+  }} />
+)}
+          <img
+  src={profile?.character === 'female' ? '/images/chars/char-lila.png' : '/images/chars/char-arya.png'}
+  alt="персонаж"
+  style={{
+    height: '160px',
+    width: 'auto',
+    filter: `drop-shadow(0 0 24px ${glowColor}90)`,
+    animation: phase?.type === 'hold' ? 'pulse-soft 2s ease-in-out infinite' : 'breathe 4s ease-in-out infinite',
+    transition: 'filter 0.8s ease',
+  }}
+/>
           {phase?.nostril === 'right' && (
-            <div style={{ ...styles.nostrilGlow, right: '10%', background: '#FBBF24' }} />
-          )}
+  <img src="/images/ui/lung-right.png" alt="правая ноздря" style={{
+    position: 'absolute' as const,
+    right: '5%', height: '80px', opacity: 0.6,
+    filter: `drop-shadow(0 0 12px #FBBF24)`,
+    animation: 'pulse-soft 2s ease-in-out infinite',
+  }} />
+)}
         </div>
       )}
 
@@ -297,14 +332,23 @@ export default function PracticePage() {
       </div>
 
       <div style={styles.controls}>
-        <button style={styles.controlBtn} onClick={handlePause}>
-          {session.isPaused ? '▶ Продолжить' : '⏸ Пауза'}
-        </button>
-        <button style={{ ...styles.controlBtn, color: '#334155' }} onClick={handleStop}>
-          ✕ Стоп
-        </button>
-      </div>
+  <button style={styles.controlBtn} onClick={handlePause}>
+    <img
+      src={session.isPaused ? '/images/ui/icon-play.png' : '/images/ui/icon-pause.png'}
+      alt={session.isPaused ? 'продолжить' : 'пауза'}
+      style={{ width: '20px', height: '20px', marginRight: '0.4rem', verticalAlign: 'middle' }}
+    />
+    {session.isPaused ? 'Продолжить' : 'Пауза'}
+  </button>
+  <button style={{ ...styles.controlBtn, color: '#334155' }} onClick={handleStop}>
+    <img src="/images/ui/icon-close.png" alt="стоп"
+      style={{ width: '16px', height: '16px', marginRight: '0.4rem', verticalAlign: 'middle', opacity: 0.4 }}
+    />
+    Стоп
+  </button>
+</div>
 
+      </div>
     </main>
   );
 }
