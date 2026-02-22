@@ -165,9 +165,9 @@ function SoundTab() {
             <div
               key={track.id}
               onClick={() => {
-                updateMusic({ selectedBirdsTrack: track.id });
-                playBirds(track.id, music.natureSoundsVolume / 100);
-              }}
+  updateMusic({ selectedBirdsTrack: track.id });
+  playBirds(track.id, music.natureSoundsVolume / 100);
+}}
               style={{
                 padding: '0.5rem 0.75rem',
                 borderRadius: '0.6rem',
