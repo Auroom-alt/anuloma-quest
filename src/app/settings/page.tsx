@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProfileStore, useSettingsStore } from '@/store';
+import { BIRDS_TRACKS, playBirds, stopBirds } from '@/lib/audio';
+
 
 type Tab = 'sound' | 'visual' | 'profile';
 
@@ -130,36 +132,73 @@ function SoundTab() {
       </Section>
 
       <Section title="🌿 Музыка и природа">
-        <Toggle
-          label="Фоновая музыка локации"
-          value={music.musicEnabled}
-          onChange={v => updateMusic({ musicEnabled: v })}
-        />
-        {music.musicEnabled && (
-          <Slider
-            label="Громкость музыки"
-            value={music.musicVolume}
-            onChange={v => updateMusic({ musicVolume: v })}
-          />
-        )}
-        <Toggle
-          label="Звуки природы"
-          value={music.natureSoundsEnabled}
-          onChange={v => updateMusic({ natureSoundsEnabled: v })}
-        />
-        {music.natureSoundsEnabled && (
-          <Slider
-            label="Громкость природы"
-            value={music.natureSoundsVolume}
-            onChange={v => updateMusic({ natureSoundsVolume: v })}
-          />
-        )}
-        <Toggle
-          label="Синхронизация с дыханием"
-          value={music.syncWithBreath}
-          onChange={v => updateMusic({ syncWithBreath: v })}
-        />
-      </Section>
+  <Toggle
+    label="Фоновая музыка локации"
+    value={music.musicEnabled}
+    onChange={v => updateMusic({ musicEnabled: v })}
+  />
+  {music.musicEnabled && (
+    <Slider
+      label="Громкость музыки"
+      value={music.musicVolume}
+      onChange={v => updateMusic({ musicVolume: v })}
+    />
+  )}
+  <Toggle
+    label="Звуки природы"
+    value={music.natureSoundsEnabled}
+    onChange={v => updateMusic({ natureSoundsEnabled: v })}
+  />
+  {music.natureSoundsEnabled && (
+    <>
+      <Slider
+        label="Громкость природы"
+        value={music.natureSoundsVolume}
+        onChange={v => updateMusic({ natureSoundsVolume: v })}
+      />
+      <div style={{ marginBottom: '0.75rem' }}>
+        <p style={{ color: '#94A3B8', fontSize: '0.875rem', marginBottom: '0.6rem' }}>
+          🐦 Звук природы
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '0.4rem', maxHeight: '220px', overflowY: 'auto' as const }}>
+          {BIRDS_TRACKS.map(track => (
+            <div
+              key={track.id}
+              onClick={() => {
+                updateMusic({ selectedBirdsTrack: track.id });
+                playBirds(track.id, music.natureSoundsVolume / 100);
+              }}
+              style={{
+                padding: '0.5rem 0.75rem',
+                borderRadius: '0.6rem',
+                cursor: 'pointer',
+                background: music.selectedBirdsTrack === track.id
+                  ? 'rgba(167,139,250,0.15)'
+                  : 'rgba(255,255,255,0.03)',
+                border: music.selectedBirdsTrack === track.id
+                  ? '1px solid rgba(167,139,250,0.4)'
+                  : '1px solid rgba(255,255,255,0.05)',
+                color: music.selectedBirdsTrack === track.id ? '#A78BFA' : '#64748B',
+                fontSize: '0.82rem',
+                transition: 'all 0.2s',
+              }}
+            >
+              {track.label}
+              {music.selectedBirdsTrack === track.id && (
+                <span style={{ float: 'right', fontSize: '0.7rem' }}>▶ играет</span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  )}
+  <Toggle
+    label="Синхронизация с дыханием"
+    value={music.syncWithBreath}
+    onChange={v => updateMusic({ syncWithBreath: v })}
+  />
+</Section>
 
     </div>
   );

@@ -82,6 +82,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     syncWithBreath: true,
     natureSoundsEnabled: true,
     natureSoundsVolume: 50,
+    selectedBirdsTrack: 'forest-atmosphere',
   },
   visual: {
     colorTheme: 'dark',

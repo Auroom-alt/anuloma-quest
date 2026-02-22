@@ -130,6 +130,7 @@ export function playGong(volume = 0.3) {
 
 // ─── ФОНОВЫЕ ЗВУКИ ───────────────────────────────────
 let bgAudio: HTMLAudioElement | null = null;
+let birdsAudio: HTMLAudioElement | null = null;
 
 const LOCATION_BG: Record<number, string> = {
   1:  '/sounds/bg-city.mp3',
@@ -144,6 +145,28 @@ const LOCATION_BG: Record<number, string> = {
   10: '/sounds/bg-mountain.mp3',
 };
 
+export const BIRDS_TRACKS = [
+  { id: 'forest-atmosphere',  label: '🌲 Атмосфера леса' },
+  { id: 'forest-birds-day',   label: '☀️ Лес днём' },
+  { id: 'forest-birds-night', label: '🌙 Лес ночью' },
+  { id: 'forest-spring',      label: '🌸 Весенний лес' },
+  { id: 'morning-birds',      label: '🌅 Утро, птицы' },
+  { id: 'morning-village',    label: '🏡 Утро в деревне' },
+  { id: 'birds-soft',         label: '🎵 Тихие птицы' },
+  { id: 'birds-rain',         label: '🌧️ Птицы в дождь' },
+  { id: 'nightingale-1',      label: '🎶 Соловей 1' },
+  { id: 'nightingale-2',      label: '🎶 Соловей 2' },
+  { id: 'nightingale-3',      label: '🎶 Соловей 3' },
+  { id: 'nightingale-crickets', label: '🦗 Соловей + сверчки' },
+  { id: 'city-birds',         label: '🏙️ Городские птицы' },
+  { id: 'city-birds-noise',   label: '🚗 Птицы + город' },
+  { id: 'frogs-nightingale',  label: '🐸 Лягушки + соловей' },
+  { id: 'birds-night',        label: '🌑 Птицы ночью' },
+  { id: 'jungle-night',       label: '🌴 Джунгли ночью' },
+  { id: 'wryneck',            label: '🐦 Вертишейка' },
+  { id: 'owl',                label: '🦉 Сова' },
+];
+
 export function playBgSound(locationId: number, volume = 0.3) {
   stopBgSound();
   const src = LOCATION_BG[locationId];
@@ -157,15 +180,29 @@ export function playBgSound(locationId: number, volume = 0.3) {
 }
 
 export function stopBgSound() {
-  if (bgAudio) {
-    bgAudio.pause();
-    bgAudio.currentTime = 0;
-    bgAudio = null;
-  }
+  if (bgAudio) { bgAudio.pause(); bgAudio.currentTime = 0; bgAudio = null; }
 }
 
 export function setBgVolume(volume: number) {
   if (bgAudio) bgAudio.volume = volume;
+}
+
+export function playBirds(trackId: string, volume = 0.4) {
+  stopBirds();
+  try {
+    birdsAudio = new Audio(`/sounds/birds/${trackId}.mp3`);
+    birdsAudio.loop   = true;
+    birdsAudio.volume = volume;
+    birdsAudio.play().catch(() => {});
+  } catch {}
+}
+
+export function stopBirds() {
+  if (birdsAudio) { birdsAudio.pause(); birdsAudio.currentTime = 0; birdsAudio = null; }
+}
+
+export function setBirdsVolume(volume: number) {
+  if (birdsAudio) birdsAudio.volume = volume;
 }
 
 // ─── ГОЛОС (Web Speech API) ───────────────────────────

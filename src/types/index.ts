@@ -71,6 +71,7 @@ export interface MusicSettings {
   syncWithBreath: boolean;
   natureSoundsEnabled: boolean;
   natureSoundsVolume: number;
+  selectedBirdsTrack: string;  // ← добавь
 }
 
 export interface VisualSettings {
