@@ -22,26 +22,29 @@ export default function PracticePage() {
 
   const phases   = getPhasesForCycle(cycle);
   const phase    = phases[session.currentPhaseIndex];
-  const locationIndex = Math.min(9, startLocationId - 1 + session.currentRound - 1);
+  const locationIndex = Math.min(9, (startLocationId - 1) + (session.currentRound - 1));
   const location = LOCATIONS[locationIndex];
 
   useEffect(() => {
-    start();
-    playOm();
-    if (settings.music.natureSoundsEnabled) {
-      playBgSound(1, settings.music.musicVolume / 100);
-    }
-    if (settings.music.natureSoundsEnabled) {
-      playBirds(settings.music.selectedBirdsTrack, settings.music.natureSoundsVolume / 100);
-    }
-    return () => {
-      if (intervalRef.current)  clearInterval(intervalRef.current);
-      if (countdownRef.current) clearInterval(countdownRef.current);
-      stopSpeech();
-      stopBgSound();
-      stopBirds();
-    };
-  }, []);
+  start();
+  playOm();
+  // Звук локации
+  if (settings.music.musicEnabled) {
+  const nextLocIndex = Math.min(9, (startLocationId - 1) + session.currentRound);
+  playBgSound(LOCATIONS[nextLocIndex].id, settings.music.musicVolume / 100);
+}
+  // Птицы
+  if (settings.music.natureSoundsEnabled) {
+    playBirds(settings.music.selectedBirdsTrack, settings.music.natureSoundsVolume / 100);
+  }
+  return () => {
+    if (intervalRef.current)  clearInterval(intervalRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    stopSpeech();
+    stopBgSound();
+    stopBirds();
+  };
+}, []);
 
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
