@@ -8,7 +8,7 @@ import { playPhaseSound, playGong, playOm, playBgSound, stopBgSound, stopSpeech,
 
 export default function PracticePage() {
   const router = useRouter();
-  const { rounds, cycle } = usePracticeSettings();
+  const { rounds, cycle, startLocationId } = usePracticeSettings();
   const { session, start, pause, resume, stop, tick, nextPhase, advanceCycle, advanceRound } = useSessionStore();
   const { addCompletedRound, profile } = useProfileStore();
   const { settings, updateMusic } = useSettingsStore();
@@ -22,7 +22,8 @@ export default function PracticePage() {
 
   const phases   = getPhasesForCycle(cycle);
   const phase    = phases[session.currentPhaseIndex];
-  const location = LOCATIONS[Math.min(10, session.currentRound) - 1];
+  const locationIndex = Math.min(9, startLocationId - 1 + session.currentRound - 1);
+  const location = LOCATIONS[locationIndex];
 
   useEffect(() => {
     start();
@@ -145,14 +146,15 @@ export default function PracticePage() {
     phase?.nostril === 'left' ? '#60A5FA' : '#FBBF24';
 
   if (finished) return (
-    <FinishScreen
-      heroName={profile?.heroName ?? 'Герой'}
-      rounds={rounds}
-      onRepeat={() => { stop(); router.push('/setup'); }}
-      onHome={() => { stop(); router.push('/'); }}
-      onMap={() => { stop(); router.push('/map'); }}
-    />
-  );
+  <FinishScreen
+    heroName={profile?.heroName ?? 'Герой'}
+    rounds={rounds}
+    onRepeat={() => { stop(); router.push('/setup'); }}
+    onHome={() => { stop(); router.push('/'); }}
+    onMap={() => { stop(); router.push('/map'); }}
+    currentLocationId={startLocationId}
+  />
+);
 
   return (
     <main style={{ ...styles.page, background: `radial-gradient(ellipse at 50% 30%, ${glowColor}18 0%, transparent 60%), #030712` }}>
@@ -466,18 +468,44 @@ function AudioPanel({ settings, updateMusic, open, setOpen, locationId, onPause,
 }
 
 // ─── FINISH SCREEN ────────────────────────────────────
-function FinishScreen({ heroName, rounds, onRepeat, onHome, onMap }: {
+function FinishScreen({ heroName, rounds, onRepeat, onHome, onMap, currentLocationId }: {
   heroName: string; rounds: number;
   onRepeat: () => void; onHome: () => void; onMap: () => void;
+  currentLocationId: number;
 }) {
+  const { setStartLocation } = usePracticeSettings();
+  const { profile } = useProfileStore();
+  const router = useRouter();
+  const nextLocation = LOCATIONS.find(l => l.id === currentLocationId + 1);
+  const nextUnlocked = nextLocation && profile?.locationsUnlocked.includes(nextLocation.id);
+
   return (
     <main style={{ minHeight: '100vh', background: '#030712', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
       <div style={{ textAlign: 'center' as const }}>
         <div style={{ fontSize: '5rem', marginBottom: '1.5rem' }}>🕉️</div>
-        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '2rem', color: '#FBBF24', marginBottom: '1rem' }}>Путь завершён</h1>
+        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '2rem', color: '#FBBF24', marginBottom: '1rem' }}>
+          Путь завершён
+        </h1>
         <p style={{ color: '#94A3B8', lineHeight: 1.8, marginBottom: '0.5rem' }}>
           {heroName} завершил {rounds} раундов дыхания.
         </p>
+        {nextUnlocked && nextLocation && (
+          <div style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: '1rem', padding: '1rem', margin: '1rem auto', maxWidth: '280px' }}>
+            <p style={{ color: '#A78BFA', fontSize: '0.85rem', marginBottom: '0.5rem' }}>✦ Следующая локация открыта</p>
+            <p style={{ color: '#F1F5F9', fontSize: '1rem', marginBottom: '0.75rem' }}>
+              {nextLocation.emoji} {nextLocation.nameRu}
+            </p>
+            <button
+              onClick={() => {
+                setStartLocation(nextLocation.id);
+                onRepeat();
+              }}
+              style={{ background: 'linear-gradient(135deg, #818CF8, #A78BFA)', color: '#fff', fontWeight: 700, fontSize: '0.9rem', padding: '0.6rem 1.5rem', borderRadius: '999px', border: 'none', cursor: 'pointer' }}
+            >
+              → Перейти к {nextLocation.nameRu}
+            </button>
+          </div>
+        )}
         <p style={{ color: '#475569', fontStyle: 'italic', fontSize: '0.95rem', lineHeight: 1.7, marginBottom: '2rem' }}>
           «Пусть вдох соединяет тебя с жизнью,<br />а выдох — возвращает покой.»
         </p>

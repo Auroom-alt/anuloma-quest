@@ -58,15 +58,18 @@ interface SettingsStore {
   cycleIndex: number;
   cycle: BreathingCycle;
   totalSeconds: number;
+  startLocationId: number;
   setRounds: (n: number) => void;
   setCycleIndex: (i: number) => void;
+  setStartLocation: (id: number) => void;
 }
 
 export const usePracticeSettings = create<SettingsStore>()((set) => ({
-  rounds:       DEFAULT_ROUNDS,
-  cycleIndex:   DEFAULT_CYCLE_INDEX,
-  cycle:        BREATHING_CYCLES[DEFAULT_CYCLE_INDEX],
-  totalSeconds: calcTotalSeconds(BREATHING_CYCLES[DEFAULT_CYCLE_INDEX], DEFAULT_ROUNDS),
+  rounds:          DEFAULT_ROUNDS,
+  cycleIndex:      DEFAULT_CYCLE_INDEX,
+  cycle:           BREATHING_CYCLES[DEFAULT_CYCLE_INDEX],
+  totalSeconds:    calcTotalSeconds(BREATHING_CYCLES[DEFAULT_CYCLE_INDEX], DEFAULT_ROUNDS),
+  startLocationId: 1,
 
   setRounds: (n) => set((s) => ({
     rounds: n,
@@ -78,6 +81,8 @@ export const usePracticeSettings = create<SettingsStore>()((set) => ({
     cycle: BREATHING_CYCLES[i],
     totalSeconds: calcTotalSeconds(BREATHING_CYCLES[i], s.rounds),
   })),
+
+  setStartLocation: (id) => set({ startLocationId: id }),
 }));
 
 // ── SESSION ───────────────────────────────────────────
