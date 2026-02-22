@@ -242,7 +242,11 @@ function MainMenu({ heroName, character }: { heroName: string; character: Charac
     🗺️ Карта пути
   </button>
   <button style={styles.btnGlass} onClick={() => router.push('/settings')}>
-    <img src="/images/ui/icon-settings.png" alt=" настройки " style={{ width: '24px', height: '24px' }} /> Настройки
+    <img 
+      src="/images/ui/icon-settings.png" 
+      alt="Gear icon representing the settings menu. The icon is a simple gear shape, visually centered on a transparent background. The surrounding environment is a calm, dark-themed interface for a meditative breathing journey app. The emotional tone is peaceful and inviting. The icon does not contain any text." 
+      style={{ width: '24px', height: '24px' }} 
+    />
   </button>
   <button
   onClick={() => router.push('/about')}
