@@ -25,6 +25,7 @@ export interface Location {
   bgTo: string;
   quote: string;
   quoteSource: string;
+  gradient: string; 
 }
 
 export interface UserProfile {

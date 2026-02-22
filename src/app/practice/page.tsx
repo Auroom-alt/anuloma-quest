@@ -139,6 +139,7 @@ export default function PracticePage() {
 
   const phaseProgress = phase ? Math.min(1, session.secondsInPhase / phase.duration) : 0;
   const remaining     = phase ? Math.max(0, phase.duration - session.secondsInPhase) : 0;
+  const locationGradient = location.gradient ?? '';
   const glowColor =
     phase?.type === 'hold' ? '#A78BFA' :
     phase?.nostril === 'left' ? '#60A5FA' : '#FBBF24';
