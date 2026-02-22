@@ -133,16 +133,16 @@ let bgAudio: HTMLAudioElement | null = null;
 let birdsAudio: HTMLAudioElement | null = null;
 
 const LOCATION_BG: Record<number, string> = {
-  1:  '/sounds/bg-city.mp3',
-  2:  '/sounds/bg-forest.mp3',
-  3:  '/sounds/bg-forest.mp3',
-  4:  '/sounds/bg-ocean.mp3',
-  5:  '/sounds/bg-forest.mp3',
-  6:  '/sounds/bg-ocean.mp3',
-  7:  '/sounds/bg-forest.mp3',
-  8:  '/sounds/bg-forest.mp3',
-  9:  '/sounds/bg-wind.mp3',
-  10: '/sounds/bg-mountain.mp3',
+  1:  '/sounds/bg-city.mp3',      // Мегаполис
+  2:  '/sounds/bg-forest.mp3',    // Лес
+  3:  '/sounds/bg-forest.mp3',    // Японский сад
+  4:  '/sounds/bg-ocean.mp3',     // Берег океана
+  5:  '/sounds/bg-forest.mp3',    // Лесная тропинка
+  6:  '/sounds/bg-ocean.mp3',     // Беседка у реки
+  7:  '/sounds/bg-forest.mp3',    // Весенний лес
+  8:  '/sounds/bg-forest.mp3',    // Цветочная поляна
+  9:  '/sounds/bg-wind.mp3',      // Вершина холма
+  10: '/sounds/bg-mountain.mp3',  // Вершина горы
 };
 
 export const BIRDS_TRACKS = [
@@ -174,7 +174,7 @@ export function playBgSound(locationId: number, volume = 0.3) {
   try {
     bgAudio = new Audio(src);
     bgAudio.loop   = true;
-    bgAudio.volume = volume;
+    bgAudio.volume = Math.min(1, Math.max(0, volume));
     bgAudio.play().catch(() => {});
   } catch {}
 }
@@ -189,12 +189,18 @@ export function setBgVolume(volume: number) {
 
 export function playBirds(trackId: string, volume = 0.4) {
   stopBirds();
+  if (!trackId) return;
   try {
-    birdsAudio = new Audio(`/sounds/birds/${trackId}.mp3`);
+    const src = `/sounds/birds/${trackId}.mp3`;
+    birdsAudio = new Audio(src);
     birdsAudio.loop   = true;
-    birdsAudio.volume = volume;
-    birdsAudio.play().catch(() => {});
-  } catch {}
+    birdsAudio.volume = Math.min(1, Math.max(0, volume));
+    birdsAudio.play().catch((e) => {
+      console.warn('birds play failed:', e);
+    });
+  } catch (e) {
+    console.warn('birds error:', e);
+  }
 }
 
 export function stopBirds() {
@@ -208,12 +214,12 @@ export function setBirdsVolume(volume: number) {
 // ─── ГОЛОС (Web Speech API) ───────────────────────────
 const VOICE_TEXTS: Record<string, Record<string, string>> = {
   ru: {
-    'inhale-left':  'Вдох левой ноздрёй',
+    'inhale-left':  'Вдох левой ',
     'hold-1':       'Задержка',
-    'exhale-right': 'Выдох правой ноздрёй',
-    'inhale-right': 'Вдох правой ноздрёй',
+    'exhale-right': 'Выдох правой ',
+    'inhale-right': 'Вдох правой ',
     'hold-2':       'Задержка',
-    'exhale-left':  'Выдох левой ноздрёй',
+    'exhale-left':  'Выдох левой ',
   },
   en: {
     'inhale-left':  'Inhale through left nostril',

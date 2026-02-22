@@ -23,7 +23,7 @@ export const useProfileStore = create<ProfileStore>()(
           totalRoundsCompleted: 0,
           totalTimeSeconds: 0,
           totalBreathCycles: 0,
-          locationsUnlocked: [1],
+          locationsUnlocked: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
           createdAt: new Date().toISOString(),
         },
       }),
@@ -31,17 +31,12 @@ export const useProfileStore = create<ProfileStore>()(
       addCompletedRound: (seconds) => {
   const p = get().profile;
   if (!p) return;
-  const newRounds = p.totalRoundsCompleted + 1;
-  const locationId = Math.min(10, newRounds);
   set({
     profile: {
       ...p,
-      totalRoundsCompleted: newRounds,
+      totalRoundsCompleted: p.totalRoundsCompleted + 1,
       totalTimeSeconds: p.totalTimeSeconds + seconds,
       totalBreathCycles: (p.totalBreathCycles ?? 0) + 6,
-      locationsUnlocked: p.locationsUnlocked.includes(locationId)
-        ? p.locationsUnlocked
-        : [...p.locationsUnlocked, locationId],
     },
   });
 },
