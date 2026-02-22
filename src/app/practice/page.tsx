@@ -74,7 +74,10 @@ export default function PracticePage() {
     } catch (e) {
       console.error('audio error:', e);
     }
-
+// Вибрация
+    if (settings.accessibility.hapticFeedback && navigator.vibrate) {
+      navigator.vibrate(upcomingPhase.type === 'hold' ? [100, 50, 100] : [80]);
+    }
     if (isLastPhase) {
       if (session.currentCycle >= CYCLES_PER_ROUND) {
         handleRoundEnd();
@@ -253,7 +256,15 @@ export default function PracticePage() {
           </div>
         </>
       )}
+ {/* СУБТИТРЫ */}
+      {settings.accessibility.subtitlesEnabled && !roundPause && phase && (
+        <></>
+      )}
 
+      {/* РЕЖИМ ЗАКРЫТЫХ ГЛАЗ */}
+      {settings.accessibility.eyesClosedMode && !roundPause && (
+        <></>
+      )}
       <div style={styles.quoteBox}>
         <p style={styles.quoteText}>«{location.quote}»</p>
         <p style={styles.quoteSource}>— {location.quoteSource}</p>
