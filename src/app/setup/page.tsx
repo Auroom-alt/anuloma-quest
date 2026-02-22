@@ -17,14 +17,14 @@ export default function SetupPage() {
   return (
     <main style={styles.page}>
       <div style={styles.container}>
-        // в return:
-return (
+      
+ (
   <PageTransition>
     <main style={styles.page}>
       ...
     </main>
   </PageTransition>
-);
+)
 
         <button onClick={() => router.back()} style={styles.backBtn}>← Назад</button>
         <p style={styles.label}>НАСТРОЙКА ПРАКТИКИ</p>

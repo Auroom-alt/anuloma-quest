@@ -21,14 +21,14 @@ export default function SettingsPage() {
   return (
     <main style={styles.page}>
       <div style={styles.container}>
-        // в return:
-return (
+        
+ (
   <PageTransition>
     <main style={styles.page}>
-      ...
+      
     </main>
   </PageTransition>
-);
+)
 
         {/* ШАПКА */}
         <button onClick={() => router.push('/')} style={styles.backBtn}>← Назад</button>
