@@ -1,8 +1,15 @@
+/* ═══════════════════════════════════════════════════════════
+   Anuloma Quest — src/app/about/page.tsx
+   Исправлено: PageTransition добавлен, цитата внизу
+   (#1E293B → видимая), подпись к фото (#334155 → #64748B).
+═══════════════════════════════════════════════════════════ */
+
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { useState }        from 'react';
+import { useRouter }       from 'next/navigation';
+import { motion }          from 'framer-motion';
+import PageTransition      from '@/components/PageTransition';
 
 const sections = [
   {
@@ -75,203 +82,273 @@ export default function AboutPage() {
   const [activeSection, setActiveSection] = useState('what');
 
   return (
-    <main style={styles.page}>
+    <PageTransition>
+      <main style={styles.page}>
 
-      {/* Шапка */}
-      <div style={styles.header}>
-        <button onClick={() => router.back()} style={styles.backBtn}>← Назад</button>
-        <h1 style={styles.title}>О практике</h1>
-        <p style={styles.subtitle}>Анулома Вилома Пранаяма</p>
-      </div>
+        {/* Шапка */}
+        <div style={styles.header}>
+          <button onClick={() => router.back()} style={styles.backBtn}>← Назад</button>
+          <h1 style={styles.title}>О практике</h1>
+          <p style={styles.subtitle}>Анулома Вилома Пранаяма</p>
+        </div>
 
-      {/* Навигация по разделам */}
-      <div style={styles.navRow}>
-        {sections.map(s => (
-          <button
-            key={s.id}
-            onClick={() => setActiveSection(s.id)}
-            style={{
-              ...styles.navBtn,
-              background: activeSection === s.id ? 'rgba(167,139,250,0.15)' : 'transparent',
-              border: `1px solid ${activeSection === s.id ? 'rgba(167,139,250,0.4)' : 'rgba(255,255,255,0.06)'}`,
-              color: activeSection === s.id ? '#A78BFA' : '#475569',
-            }}
-          >
-            {s.emoji}
-          </button>
-        ))}
-      </div>
-
-      {/* Контент */}
-      {sections.map(s => s.id === activeSection && (
-        <motion.div
-          key={s.id}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
-          style={styles.card}
-        >
-          <h2 style={styles.sectionTitle}>{s.emoji} {s.title}</h2>
-
-          {/* Картинка если есть */}
-          {'image' in s && (
-            <div style={{ textAlign: 'center' as const, marginBottom: '1.5rem' }}>
-              <img
-                src={s.image}
-                alt="Вишну Мудра — техника пальцев для Анулома Виломы"
-                style={{
-                  maxWidth: '280px', width: '100%',
-                  borderRadius: '1rem',
-                  filter: 'sepia(0.3) brightness(0.9)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                }}
-              />
-              <p style={{ color: '#334155', fontSize: '0.75rem', marginTop: '0.5rem' }}>
-                Вишну Мудра — положение руки при практике
-              </p>
-            </div>
-          )}
-
-          {/* Текст */}
-          {s.content.map((para, i) => (
-            <p key={i} style={styles.para}>{para}</p>
+        {/* Навигация */}
+        <div style={styles.navRow}>
+          {sections.map(s => (
+            <button
+              key={s.id}
+              onClick={() => setActiveSection(s.id)}
+              style={{
+                ...styles.navBtn,
+                background:   activeSection === s.id ? 'rgba(167,139,250,0.15)' : 'transparent',
+                border:       `1px solid ${activeSection === s.id ? 'rgba(167,139,250,0.4)' : 'rgba(255,255,255,0.06)'}`,
+                color:        activeSection === s.id ? '#A78BFA' : '#64748B',
+              }}
+            >
+              {s.emoji}
+            </button>
           ))}
+        </div>
 
-          {/* Шаги если есть */}
-          {'steps' in s && (
-            <div style={{ marginTop: '1.25rem' }}>
-              <p style={{ color: '#64748B', fontSize: '0.78rem', letterSpacing: '0.12em', marginBottom: '0.75rem' }}>
-                ПОСЛЕДОВАТЕЛЬНОСТЬ
-              </p>
-              {s.steps.map((step, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.07 }}
-                  style={styles.step}
-                >
-                  <div style={styles.stepNum}>{step.num}</div>
-                  <p style={styles.stepText}>{step.text}</p>
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </motion.div>
-      ))}
+        {/* Контент раздела */}
+        {sections.map(s => s.id === activeSection && (
+          <motion.div
+            key={s.id}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            style={styles.card}
+          >
+            <h2 style={styles.sectionTitle}>{s.emoji} {s.title}</h2>
 
-      {/* Кнопка начать */}
-      <motion.button
-        whileHover={{ scale: 1.03 }}
-        whileTap={{ scale: 0.97 }}
-        onClick={() => router.push('/setup')}
-        style={styles.startBtn}
-      >
-        🌬️ Начать практику
-      </motion.button>
+            {/* Изображение Вишну Мудры */}
+            {'image' in s && (
+              <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                <img
+                  src={s.image}
+                  alt="Вишну Мудра — положение руки при практике Анулома Виломы"
+                  style={{
+                    maxWidth:     '280px',
+                    width:        '100%',
+                    borderRadius: '1rem',
+                    filter:       'sepia(0.3) brightness(0.9)',
+                    border:       '1px solid rgba(255,255,255,0.08)',
+                  }}
+                />
+                {/* ИСПРАВЛЕНО: #334155 → #64748B */}
+                <p style={{ color: '#64748B', fontSize: '0.75rem', marginTop: '0.5rem' }}>
+                  Вишну Мудра — положение руки при практике
+                </p>
+              </div>
+            )}
 
-      <p style={{ color: '#1E293B', fontSize: '0.75rem', textAlign: 'center' as const, marginBottom: '2rem' }}>
-        «Когда прана в сушумне — достигается самадхи»
-        <br />— Хатха-йога Прадипика
-      </p>
+            {/* Параграфы */}
+            {s.content.map((para, i) => (
+              <p key={i} style={styles.para}>{para}</p>
+            ))}
 
-    </main>
+            {/* Шаги */}
+            {'steps' in s && (
+              <div style={{ marginTop: '1.25rem' }}>
+                <p style={{ color: '#64748B', fontSize: '0.78rem', letterSpacing: '0.12em', marginBottom: '0.75rem' }}>
+                  ПОСЛЕДОВАТЕЛЬНОСТЬ
+                </p>
+                {s.steps.map((step, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0  }}
+                    transition={{ delay: i * 0.07 }}
+                    style={styles.step}
+                  >
+                    <div style={styles.stepNum}>{step.num}</div>
+                    <p style={styles.stepText}>{step.text}</p>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        ))}
+
+        {/* Кнопка начать */}
+        <motion.button
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={() => router.push('/setup')}
+          style={styles.startBtn}
+        >
+          🌬️ Начать практику
+        </motion.button>
+
+        {/* Цитата — ИСПРАВЛЕНО: #1E293B → #94A3B8 */}
+        <div style={styles.quoteBox}>
+          <p style={styles.quoteText}>
+            «Когда прана в сушумне — достигается самадхи»
+          </p>
+          <p style={styles.quoteSource}>— Хатха-йога Прадипика</p>
+        </div>
+
+      </main>
+    </PageTransition>
   );
 }
 
+/* ─── STYLES ────────────────────────────────────────────── */
 const styles = {
   page: {
-    minHeight: '100dvh',
-    background: 'radial-gradient(ellipse at 50% 0%, rgba(167,139,250,0.08) 0%, transparent 60%), #030712',
-    display: 'flex', flexDirection: 'column' as const,
-    alignItems: 'center',
-    padding: '0 1rem',
+    minHeight:      '100dvh',
+    background:     'radial-gradient(ellipse at 50% 0%, rgba(167,139,250,0.08) 0%, transparent 60%), #030712',
+    display:        'flex',
+    flexDirection:  'column' as const,
+    alignItems:     'center',
+    padding:        '0 1rem 3rem',
   },
+
   header: {
-    width: '100%', maxWidth: '520px',
-    paddingTop: '1.5rem',
-    marginBottom: '1.5rem',
-    textAlign: 'center' as const,
+    width:         '100%',
+    maxWidth:      '520px',
+    paddingTop:    '1.5rem',
+    marginBottom:  '1.5rem',
+    textAlign:     'center' as const,
   },
+
   backBtn: {
-    background: 'none', border: 'none', color: '#475569',
-    cursor: 'pointer', fontSize: '0.9rem',
-    display: 'block', marginBottom: '1rem',
+    background:   'none',
+    border:       'none',
+    color:        '#64748B',
+    cursor:       'pointer',
+    fontSize:     '0.9rem',
+    display:      'block',
+    marginBottom: '1rem',
+    padding:      '0.5rem 0',
   } as React.CSSProperties,
+
   title: {
-    fontFamily: 'Georgia, serif',
-    fontSize: 'clamp(1.6rem, 4vw, 2.2rem)',
-    background: 'linear-gradient(135deg, #818CF8, #A78BFA)',
+    fontFamily:           'Georgia, serif',
+    fontSize:             'clamp(1.6rem, 4vw, 2.2rem)',
+    background:           'linear-gradient(135deg, #818CF8, #A78BFA)',
     WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    backgroundClip: 'text',
-    marginBottom: '0.3rem',
+    WebkitTextFillColor:  'transparent',
+    backgroundClip:       'text',
+    marginBottom:         '0.3rem',
   } as React.CSSProperties,
+
   subtitle: {
-    color: '#475569', fontSize: '0.9rem',
+    color:     '#64748B',
+    fontSize:  '0.9rem',
     fontStyle: 'italic',
   },
+
   navRow: {
-    display: 'flex', gap: '0.5rem',
-    marginBottom: '1.25rem',
-    flexWrap: 'wrap' as const,
+    display:        'flex',
+    gap:            '0.5rem',
+    marginBottom:   '1.25rem',
+    flexWrap:       'wrap' as const,
     justifyContent: 'center',
   },
+
   navBtn: {
     borderRadius: '0.75rem',
-    padding: '0.5rem 0.85rem',
-    fontSize: '1.2rem',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-    minHeight: '44px',
+    padding:      '0.5rem 0.85rem',
+    fontSize:     '1.2rem',
+    cursor:       'pointer',
+    transition:   'all 0.2s',
+    minHeight:    '44px',
   } as React.CSSProperties,
+
   card: {
-    width: '100%', maxWidth: '520px',
-    background: 'rgba(255,255,255,0.03)',
-    border: '1px solid rgba(255,255,255,0.07)',
+    width:        '100%',
+    maxWidth:     '520px',
+    background:   'rgba(255,255,255,0.03)',
+    border:       '1px solid rgba(255,255,255,0.07)',
     borderRadius: '1.5rem',
-    padding: 'clamp(1.25rem, 4vw, 2rem)',
+    padding:      'clamp(1.25rem, 4vw, 2rem)',
     marginBottom: '1.25rem',
   } as React.CSSProperties,
+
   sectionTitle: {
-    fontFamily: 'Georgia, serif',
-    fontSize: '1.25rem',
-    color: '#A78BFA',
+    fontFamily:   'Georgia, serif',
+    fontSize:     '1.25rem',
+    color:        '#A78BFA',
     marginBottom: '1.25rem',
-    fontWeight: 600,
+    fontWeight:   600,
   },
+
   para: {
-    color: '#94A3B8',
-    fontSize: '0.9rem',
-    lineHeight: 1.8,
+    color:        '#94A3B8',
+    fontSize:     '0.9rem',
+    lineHeight:   1.8,
     marginBottom: '0.85rem',
   },
+
   step: {
-    display: 'flex', gap: '0.75rem', alignItems: 'flex-start',
+    display:      'flex',
+    gap:          '0.75rem',
+    alignItems:   'flex-start',
     marginBottom: '0.75rem',
-    background: 'rgba(255,255,255,0.03)',
+    background:   'rgba(255,255,255,0.03)',
     borderRadius: '0.75rem',
-    padding: '0.6rem 0.85rem',
-    border: '1px solid rgba(255,255,255,0.05)',
+    padding:      '0.6rem 0.85rem',
+    border:       '1px solid rgba(255,255,255,0.05)',
   } as React.CSSProperties,
+
   stepNum: {
-    minWidth: '24px', height: '24px',
-    background: 'rgba(167,139,250,0.15)',
-    border: '1px solid rgba(167,139,250,0.3)',
-    borderRadius: '50%',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    color: '#A78BFA', fontSize: '0.75rem', fontWeight: 700,
-    flexShrink: 0,
+    minWidth:       '24px',
+    height:         '24px',
+    background:     'rgba(167,139,250,0.15)',
+    border:         '1px solid rgba(167,139,250,0.3)',
+    borderRadius:   '50%',
+    display:        'flex',
+    alignItems:     'center',
+    justifyContent: 'center',
+    color:          '#A78BFA',
+    fontSize:       '0.75rem',
+    fontWeight:     700,
+    flexShrink:     0,
   } as React.CSSProperties,
+
   stepText: {
-    color: '#94A3B8', fontSize: '0.85rem', lineHeight: 1.6,
+    color:     '#94A3B8',
+    fontSize:  '0.85rem',
+    lineHeight: 1.6,
   },
+
   startBtn: {
-    background: 'linear-gradient(135deg, #F59E0B, #FBBF24)',
-    color: '#0a0a0a', fontWeight: 700,
-    fontSize: '1rem', padding: '0.9rem 2.5rem',
-    borderRadius: '999px', border: 'none',
-    cursor: 'pointer', width: '100%',
-    maxWidth: '320px', marginBottom: '1.25rem',
+    background:   'linear-gradient(135deg, #F59E0B, #FBBF24)',
+    color:        '#0a0a0a',
+    fontWeight:   700,
+    fontSize:     '1rem',
+    padding:      '0.9rem 2.5rem',
+    borderRadius: '999px',
+    border:       'none',
+    cursor:       'pointer',
+    width:        '100%',
+    maxWidth:     '320px',
+    marginBottom: '1.5rem',
+    boxShadow:    '0 0 20px 4px rgba(251,191,36,0.2)',
   } as React.CSSProperties,
+
+  /* Цитата внизу страницы */
+  quoteBox: {
+    textAlign:    'center' as const,
+    marginBottom: '2rem',
+    padding:      '1rem 1.5rem',
+    borderTop:    '1px solid rgba(255,255,255,0.05)',
+    maxWidth:     '400px',
+  },
+
+  /* ИСПРАВЛЕНО: было #1E293B — невидимый на тёмном фоне */
+  quoteText: {
+    color:        '#94A3B8',
+    fontStyle:    'italic',
+    fontSize:     '0.85rem',
+    lineHeight:   1.7,
+    marginBottom: '0.35rem',
+  },
+
+  /* ИСПРАВЛЕНО: добавлен источник как отдельный элемент */
+  quoteSource: {
+    color:    '#64748B',
+    fontSize: '0.75rem',
+  },
 };
