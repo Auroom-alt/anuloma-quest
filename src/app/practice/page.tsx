@@ -392,11 +392,7 @@ export default function PracticePage() {
             {session.isPaused ? '▶' : '⏸'}
           </button>
           <button style={{ ...styles.controlBtn, color: '#64748B' }} onClick={handleStop}>
-            <img
-              src="✕ Стоп" alt="стоп"
-              style={{ width: '16px', height: '16px', marginRight: '0.4rem', verticalAlign: 'middle', opacity: 0.4 }}
-            />
-            Стоп
+            ✕ Стоп
           </button>
         </div>
 
