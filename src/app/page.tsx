@@ -278,18 +278,7 @@ function MainMenu({ heroName, character }: { heroName: string; character: Charac
 
           {/* ИСПРАВЛЕНО: alt → "настройки", добавлен текст кнопки */}
           <button style={styles.btnGlass} onClick={() => router.push('/settings')}>
-            <img
-              src="⚙️"
-              alt="настройки"
-              style={{
-                width:          '20px',
-                height:         '20px',
-                marginRight:    '0.5rem',
-                verticalAlign:  'middle',
-                opacity:        0.7,
-              }}
-            />
-             Настройки
+            ⚙️ Настройки
           </button>
 
           <button

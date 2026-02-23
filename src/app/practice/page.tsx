@@ -242,16 +242,7 @@ export default function PracticePage() {
         {/* Персонаж */}
         {!roundPause && (
           <div style={styles.characterWrap}>
-            {phase?.nostril === 'left' && (
-              <img
-                src="⬅️" alt="левая ноздря"
-                style={{
-                  position: 'absolute', left: '5%', height: '80px', opacity: 0.6,
-                  filter: 'drop-shadow(0 0 12px #60A5FA)',
-                  animation: 'pulse-soft 2s ease-in-out infinite',
-                }}
-              />
-            )}
+            
             <img
               src={profile?.character === 'female'
                 ? '/images/chars/char-lila.png'
@@ -267,16 +258,7 @@ export default function PracticePage() {
                 transition: 'filter 0.8s ease',
               }}
             />
-            {phase?.nostril === 'right' && (
-              <img
-                src="➡️" alt="правая ноздря"
-                style={{
-                  position: 'absolute', right: '5%', height: '80px', opacity: 0.6,
-                  filter: 'drop-shadow(0 0 12px #FBBF24)',
-                  animation: 'pulse-soft 2s ease-in-out infinite',
-                }}
-              />
-            )}
+            
           </div>
         )}
 
