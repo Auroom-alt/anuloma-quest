@@ -153,7 +153,7 @@ export default function AboutPage() {
                 <p style={{ color: '#64748B', fontSize: '0.78rem', letterSpacing: '0.12em', marginBottom: '0.75rem' }}>
                   ПОСЛЕДОВАТЕЛЬНОСТЬ
                 </p>
-                {s.steps.map((step, i) => (
+                {s.steps?.map((step, i) => (
                   <motion.div
                     key={i}
                     initial={{ opacity: 0, x: -8 }}

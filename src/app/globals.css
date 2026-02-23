@@ -1,0 +1,186 @@
+/* ═══════════════════════════════════════════════════════════
+   Anuloma Quest — globals.css
+   Tailwind v4 (CSS-first configuration via @import + @theme)
+═══════════════════════════════════════════════════════════ */
+
+@import "tailwindcss";
+
+/* ─── CUSTOM THEME ──────────────────────────────────────── */
+@theme {
+  /* Цвета нади (каналов) */
+  --color-ida-400:      #93C5FD;
+  --color-ida-500:      #60A5FA;
+  --color-ida-900:      #1E3A5F;
+
+  --color-pingala-400:  #FCD34D;
+  --color-pingala-500:  #FBBF24;
+  --color-pingala-900:  #78350F;
+
+  --color-akasha-400:   #C4B5FD;
+  --color-akasha-500:   #A78BFA;
+  --color-akasha-900:   #3B1F6B;
+
+  --color-lotus-400:    #F9A8D4;
+  --color-lotus-500:    #EC4899;
+  --color-lotus-900:    #831843;
+
+  --color-prana-400:    #6EE7B7;
+  --color-prana-500:    #10B981;
+  --color-prana-900:    #064E3B;
+
+  --color-saffron-400:  #FCA5A5;
+  --color-saffron-500:  #F87171;
+  --color-saffron-900:  #7F1D1D;
+
+  /* Шрифты */
+  --font-vedic: Georgia, "Times New Roman", serif;
+  --font-body:  system-ui, -apple-system, sans-serif;
+
+  /* Анимации */
+  --animate-breathe:    breathe 4s ease-in-out infinite;
+  --animate-float:      float 6s ease-in-out infinite;
+  --animate-pulse-soft: pulse-soft 3s ease-in-out infinite;
+  --animate-glow-blue:  glow-blue 3s ease-in-out infinite;
+  --animate-glow-gold:  glow-gold 3s ease-in-out infinite;
+  --animate-fade-in:    fade-in 0.5s ease-out both;
+  --animate-spin-slow:  spin 8s linear infinite;
+
+  /* Keyframes */
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); }
+    50%       { transform: scale(1.06); }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-10px); }
+  }
+
+  @keyframes pulse-soft {
+    0%, 100% { transform: scale(1);    opacity: 1;    }
+    50%       { transform: scale(1.03); opacity: 0.85; }
+  }
+
+  @keyframes glow-blue {
+    0%, 100% { box-shadow: 0 0 20px 4px rgba(96,165,250,0.35); }
+    50%       { box-shadow: 0 0 35px 10px rgba(96,165,250,0.6); }
+  }
+
+  @keyframes glow-gold {
+    0%, 100% { box-shadow: 0 0 20px 4px rgba(251,191,36,0.35); }
+    50%       { box-shadow: 0 0 35px 10px rgba(251,191,36,0.6); }
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0);    }
+  }
+}
+
+/* ─── CSS ПЕРЕМЕННЫЕ (для inline-styles и JS) ───────────── */
+:root {
+  --ida:      #60A5FA;
+  --pingala:  #FBBF24;
+  --sushumna: #A78BFA;
+  --bg:       #030712;
+  --surface:  rgba(255,255,255,0.04);
+  --border:   rgba(255,255,255,0.08);
+}
+
+/* ─── BASE ──────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}
+
+html,
+body {
+  height: 100%;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+body {
+  background: #030712;
+  color: #F1F5F9;
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── TOUCH-FRIENDLY ────────────────────────────────────── */
+button {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* iOS: убираем зум при фокусе на инпутах */
+input,
+select,
+textarea {
+  font-size: 16px !important;
+}
+
+/* ─── УТИЛИТЫ ───────────────────────────────────────────── */
+
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.text-gold {
+  background: linear-gradient(135deg, #FBBF24, #FCD34D);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-sacred {
+  background: linear-gradient(135deg, #818CF8, #A78BFA, #60A5FA);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-breath {
+  background: linear-gradient(135deg, #60A5FA, #A78BFA);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.glow-ida     { box-shadow: 0 0 25px 8px rgba(96, 165, 250, 0.5);  }
+.glow-pingala { box-shadow: 0 0 25px 8px rgba(251, 191, 36, 0.5);  }
+.glow-center  { box-shadow: 0 0 30px 12px rgba(167, 139, 250, 0.5);}
+.glow-gold-sm { box-shadow: 0 0 12px 2px rgba(251, 191, 36, 0.25); }
+
+/* ─── ФОНЫ СТРАНИЦ ──────────────────────────────────────── */
+.bg-sacred {
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(167,139,250,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(251,191,36,0.04) 0%, transparent 50%),
+    #030712;
+}
+
+.bg-practice {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(96,165,250,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 100%, rgba(251,191,36,0.05) 0%, transparent 60%),
+    #030712;
+}
