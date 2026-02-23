@@ -1,21 +1,20 @@
 /* ═══════════════════════════════════════════════════════════
    Anuloma Quest — src/app/settings/page.tsx
-   Исправлено: JSX структура (скобки убраны, PageTransition
-   правильно оборачивает страницу), невидимые цвета исправлены.
+   Все поля соответствуют реальным типам из types.ts
 ═══════════════════════════════════════════════════════════ */
 
 'use client';
 
-import { useState }                                        from 'react';
-import { useRouter }                                       from 'next/navigation';
-import { useProfileStore, useSettingsStore }               from '@/store';
-import { BIRDS_TRACKS, playBirds }                         from '@/lib/audio';
-import PageTransition                                      from '@/components/PageTransition';
+import { useState }                                  from 'react';
+import { useRouter }                                 from 'next/navigation';
+import { useProfileStore, useSettingsStore }          from '@/store';
+import { BIRDS_TRACKS, playBirds }                   from '@/lib/audio';
+import PageTransition                                from '@/components/PageTransition';
 
 type Tab = 'sound' | 'visual' | 'profile';
 
 export default function SettingsPage() {
-  const router     = useRouter();
+  const router    = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('sound');
   const { profile, reset }        = useProfileStore();
 
@@ -26,7 +25,6 @@ export default function SettingsPage() {
       <main style={styles.page}>
         <div style={styles.container}>
 
-          {/* ШАПКА */}
           <button onClick={() => router.push('/')} style={styles.backBtn}>← Назад</button>
           <p style={styles.eyebrow}>ПЕРСОНАЛИЗАЦИЯ</p>
           <h1 style={styles.title}>Настройки</h1>
@@ -34,7 +32,6 @@ export default function SettingsPage() {
             {profile.character === 'male' ? '🧘' : '🧘‍♀️'} {profile.heroName}
           </p>
 
-          {/* ВКЛАДКИ */}
           <div style={styles.tabs}>
             {(['sound', 'visual', 'profile'] as Tab[]).map(tab => (
               <button
@@ -52,7 +49,6 @@ export default function SettingsPage() {
             ))}
           </div>
 
-          {/* КОНТЕНТ */}
           <div style={styles.content}>
             {activeTab === 'sound'   && <SoundTab />}
             {activeTab === 'visual'  && <VisualTab />}
@@ -169,7 +165,7 @@ function SoundTab() {
                 🐦 Звук природы
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: '220px', overflowY: 'auto' }}>
-                {BIRDS_TRACKS.map(track => (
+                {BIRDS_TRACKS.map((track: any) => (
                   <div
                     key={track.id}
                     onClick={() => {
@@ -181,11 +177,9 @@ function SoundTab() {
                       borderRadius: '0.6rem',
                       cursor:       'pointer',
                       background:   music.selectedBirdsTrack === track.id
-                        ? 'rgba(167,139,250,0.15)'
-                        : 'rgba(255,255,255,0.03)',
+                        ? 'rgba(167,139,250,0.15)' : 'rgba(255,255,255,0.03)',
                       border:       music.selectedBirdsTrack === track.id
-                        ? '1px solid rgba(167,139,250,0.4)'
-                        : '1px solid rgba(255,255,255,0.05)',
+                        ? '1px solid rgba(167,139,250,0.4)' : '1px solid rgba(255,255,255,0.05)',
                       color:        music.selectedBirdsTrack === track.id ? '#A78BFA' : '#64748B',
                       fontSize:     '0.82rem',
                       transition:   'all 0.2s',
@@ -213,9 +207,11 @@ function SoundTab() {
 }
 
 /* ─── ВИЗУАЛ ────────────────────────────────────────────── */
+// Поля из VisualSettings: colorTheme, glowIntensity, dotStyle,
+// characterAnimationEnabled, animationAmplitude, transitionSpeed
 function VisualTab() {
-  const { settings, updateVisual, updateAccessibility } = useSettingsStore();
-  const { visual, accessibility } = settings;
+  const { settings, updateVisual } = useSettingsStore();
+  const { visual } = settings;
 
   return (
     <div style={styles.tabContent}>
@@ -235,10 +231,9 @@ function VisualTab() {
           label="Интенсивность свечения"
           value={visual.glowIntensity}
           options={[
-            { value: 'none',   label: 'Выключено' },
-            { value: 'subtle', label: 'Мягкое'    },
-            { value: 'normal', label: 'Обычное'   },
-            { value: 'strong', label: 'Яркое'     },
+            { value: 'low',    label: '🌑 Слабое'   },
+            { value: 'medium', label: '✨ Среднее'  },
+            { value: 'high',   label: '💫 Яркое'    },
           ]}
           onChange={v => updateVisual({ glowIntensity: v as any })}
         />
@@ -246,20 +241,67 @@ function VisualTab() {
 
       <Section title="✨ Анимации">
         <Toggle
-          label="Анимации дыхания"
-          value={visual.breathingAnimations}
-          onChange={v => updateVisual({ breathingAnimations: v })}
+          label="Анимация персонажа"
+          value={visual.characterAnimationEnabled}
+          onChange={v => updateVisual({ characterAnimationEnabled: v })}
         />
-        <Toggle
-          label="Фоновые частицы"
-          value={visual.particleEffects}
-          onChange={v => updateVisual({ particleEffects: v })}
+        <Select
+          label="Амплитуда дыхания"
+          value={visual.animationAmplitude}
+          options={[
+            { value: 'small',  label: 'Мягкая'   },
+            { value: 'medium', label: 'Средняя'  },
+            { value: 'large',  label: 'Сильная'  },
+          ]}
+          onChange={v => updateVisual({ animationAmplitude: v as any })}
         />
-        <Toggle
-          label="Плавные переходы"
-          value={visual.pageTransitions}
-          onChange={v => updateVisual({ pageTransitions: v })}
+        <Select
+          label="Скорость переходов"
+          value={visual.transitionSpeed}
+          options={[
+            { value: 'soft', label: '🌊 Плавно' },
+            { value: 'fast', label: '⚡ Быстро' },
+          ]}
+          onChange={v => updateVisual({ transitionSpeed: v as any })}
         />
+      </Section>
+
+      <Section title="💎 Стиль точек">
+        <Select
+          label="Точки фаз дыхания"
+          value={visual.dotStyle}
+          options={[
+            { value: 'circles',  label: '⬤ Круги'    },
+            { value: 'crystals', label: '💎 Кристаллы' },
+            { value: 'stars',    label: '✦ Звёзды'    },
+          ]}
+          onChange={v => updateVisual({ dotStyle: v as any })}
+        />
+      </Section>
+
+    </div>
+  );
+}
+
+/* ─── ПРОФИЛЬ ───────────────────────────────────────────── */
+// Поля из AccessibilitySettings: subtitlesEnabled, highContrastMode,
+// hapticFeedback, largeFontMode, eyesClosedMode
+function ProfileTab({ profile, onReset }: { profile: any; onReset: () => void }) {
+  const router                                 = useRouter();
+  const { settings, updateAccessibility }      = useSettingsStore();
+  const { accessibility }                      = settings;
+  const totalMinutes                           = Math.floor(profile.totalTimeSeconds / 60);
+
+  return (
+    <div style={styles.tabContent}>
+
+      <Section title="📊 Статистика">
+        <div style={styles.statGrid}>
+          <StatItem label="Раундов" value={profile.totalRoundsCompleted}        color="#60A5FA" />
+          <StatItem label="Минут"   value={totalMinutes}                         color="#A78BFA" />
+          <StatItem label="Циклов"  value={profile.totalBreathCycles ?? 0}       color="#FBBF24" />
+          <StatItem label="Локаций" value={profile.locationsUnlocked.length}     color="#34D399" />
+        </div>
       </Section>
 
       <Section title="♿ Доступность">
@@ -274,41 +316,20 @@ function VisualTab() {
           onChange={v => updateAccessibility({ eyesClosedMode: v })}
         />
         <Toggle
-          label="Вибрация"
-          value={accessibility.vibrationEnabled}
-          onChange={v => updateAccessibility({ vibrationEnabled: v })}
+          label="Вибрация / тактильный отклик"
+          value={accessibility.hapticFeedback}
+          onChange={v => updateAccessibility({ hapticFeedback: v })}
         />
         <Toggle
-          label="Уменьшить движение"
-          value={accessibility.reducedMotion}
-          onChange={v => updateAccessibility({ reducedMotion: v })}
+          label="Высокий контраст"
+          value={accessibility.highContrastMode}
+          onChange={v => updateAccessibility({ highContrastMode: v })}
         />
-        <Slider
-          label="Размер текста"
-          value={accessibility.fontSize}
-          onChange={v => updateAccessibility({ fontSize: v })}
+        <Toggle
+          label="Крупный шрифт"
+          value={accessibility.largeFontMode}
+          onChange={v => updateAccessibility({ largeFontMode: v })}
         />
-      </Section>
-
-    </div>
-  );
-}
-
-/* ─── ПРОФИЛЬ ───────────────────────────────────────────── */
-function ProfileTab({ profile, onReset }: { profile: any; onReset: () => void }) {
-  const router       = useRouter();
-  const totalMinutes = Math.floor(profile.totalTimeSeconds / 60);
-
-  return (
-    <div style={styles.tabContent}>
-
-      <Section title="📊 Статистика">
-        <div style={styles.statGrid}>
-          <StatItem label="Раундов" value={profile.totalRoundsCompleted}        color="#60A5FA" />
-          <StatItem label="Минут"   value={totalMinutes}                         color="#A78BFA" />
-          <StatItem label="Циклов"  value={profile.totalBreathCycles ?? 0}       color="#FBBF24" />
-          <StatItem label="Локаций" value={profile.locationsUnlocked.length}     color="#34D399" />
-        </div>
       </Section>
 
       <Section title="🏆 Достижения">
@@ -358,21 +379,16 @@ function Toggle({ label, value, onChange }: {
         style={{
           width: '44px', height: '24px', borderRadius: '12px',
           background:  value ? '#A78BFA' : 'rgba(255,255,255,0.1)',
-          position:    'relative',
-          cursor:      'pointer',
-          transition:  'background 0.3s',
-          flexShrink:  0,
+          position:    'relative', cursor: 'pointer',
+          transition:  'background 0.3s', flexShrink: 0,
         }}
       >
         <div style={{
-          position:     'absolute',
-          top:          '3px',
-          left:         value ? '23px' : '3px',
-          width:        '18px',
-          height:       '18px',
-          borderRadius: '50%',
-          background:   '#fff',
-          transition:   'left 0.3s',
+          position: 'absolute', top: '3px',
+          left:     value ? '23px' : '3px',
+          width: '18px', height: '18px',
+          borderRadius: '50%', background: '#fff',
+          transition: 'left 0.3s',
         }} />
       </div>
     </div>
@@ -398,9 +414,8 @@ function Slider({ label, value, onChange }: {
 }
 
 function Select({ label, value, options, onChange }: {
-  label:    string;
-  value:    string;
-  options:  { value: string; label: string }[];
+  label: string; value: string;
+  options: { value: string; label: string }[];
   onChange: (v: string) => void;
 }) {
   return (
@@ -435,14 +450,11 @@ function AchievRow({ emoji, label, desc, done }: {
 }) {
   return (
     <div style={{
-      display:     'flex',
-      alignItems:  'center',
-      gap:         '0.75rem',
-      padding:     '0.6rem 0.75rem',
-      borderRadius: '0.75rem',
-      background:  done ? 'rgba(251,191,36,0.06)' : 'rgba(255,255,255,0.02)',
-      border:      done ? '1px solid rgba(251,191,36,0.2)' : '1px solid rgba(255,255,255,0.04)',
-      opacity:     done ? 1 : 0.45,
+      display: 'flex', alignItems: 'center', gap: '0.75rem',
+      padding: '0.6rem 0.75rem', borderRadius: '0.75rem',
+      background: done ? 'rgba(251,191,36,0.06)' : 'rgba(255,255,255,0.02)',
+      border:     done ? '1px solid rgba(251,191,36,0.2)' : '1px solid rgba(255,255,255,0.04)',
+      opacity: done ? 1 : 0.45,
     }}>
       <span style={{ fontSize: '1.4rem' }}>{emoji}</span>
       <div style={{ flex: 1 }}>
@@ -467,114 +479,70 @@ const styles = {
   container: { maxWidth: '520px', margin: '0 auto' },
 
   backBtn: {
-    background:   'none',
-    border:       'none',
-    color:        '#64748B',
-    cursor:       'pointer',
-    fontSize:     '0.9rem',
-    marginBottom: '1.5rem',
-    display:      'block',
-    padding:      '0.5rem 0',
+    background: 'none', border: 'none', color: '#64748B',
+    cursor: 'pointer', fontSize: '0.9rem',
+    marginBottom: '1.5rem', display: 'block', padding: '0.5rem 0',
   } as React.CSSProperties,
 
-  eyebrow: {
-    color:         '#475569',
-    letterSpacing: '0.2em',
-    fontSize:      '0.75rem',
-    marginBottom:  '0.4rem',
-  },
+  eyebrow: { color: '#475569', letterSpacing: '0.2em', fontSize: '0.75rem', marginBottom: '0.4rem' },
 
   title: {
-    fontFamily:           'Georgia, serif',
-    fontSize:             'clamp(1.8rem, 4vw, 2.5rem)',
-    background:           'linear-gradient(135deg, #818CF8, #A78BFA)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor:  'transparent',
-    backgroundClip:       'text',
-    marginBottom:         '0.25rem',
+    fontFamily: 'Georgia, serif',
+    fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
+    background: 'linear-gradient(135deg, #818CF8, #A78BFA)',
+    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+    backgroundClip: 'text', marginBottom: '0.25rem',
   } as React.CSSProperties,
 
   sub: { color: '#64748B', fontSize: '0.9rem', marginBottom: '1.5rem' },
 
-  tabs: {
-    display:       'flex',
-    borderBottom:  '1px solid rgba(255,255,255,0.06)',
-    marginBottom:  '1.5rem',
-  },
+  tabs: { display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: '1.5rem' },
 
   tab: {
-    flex:       1,
-    padding:    '0.75rem 0.5rem',
-    background: 'none',
-    border:     'none',
-    cursor:     'pointer',
-    fontSize:   '0.85rem',
-    transition: 'all 0.2s',
+    flex: 1, padding: '0.75rem 0.5rem',
+    background: 'none', border: 'none', cursor: 'pointer',
+    fontSize: '0.85rem', transition: 'all 0.2s',
   } as React.CSSProperties,
 
   content: {},
-
   tabContent: { display: 'flex', flexDirection: 'column' as const, gap: '1rem' },
 
   section: {
-    background:   'rgba(255,255,255,0.03)',
-    border:       '1px solid rgba(255,255,255,0.06)',
-    borderRadius: '1.25rem',
-    overflow:     'hidden',
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px solid rgba(255,255,255,0.06)',
+    borderRadius: '1.25rem', overflow: 'hidden',
   },
 
   sectionTitle: {
-    padding:       '0.9rem 1.25rem',
-    borderBottom:  '1px solid rgba(255,255,255,0.05)',
-    color:         '#64748B',
-    fontSize:      '0.8rem',
-    letterSpacing: '0.05em',
+    padding: '0.9rem 1.25rem',
+    borderBottom: '1px solid rgba(255,255,255,0.05)',
+    color: '#64748B', fontSize: '0.8rem', letterSpacing: '0.05em',
   },
 
   sectionBody: { padding: '1rem 1.25rem' },
 
-  row: {
-    display:        'flex',
-    justifyContent: 'space-between',
-    alignItems:     'center',
-    marginBottom:   '0.75rem',
-  },
-
+  row: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' },
   rowLabel: { color: '#94A3B8', fontSize: '0.875rem' },
 
   select: {
-    background:   'rgba(255,255,255,0.06)',
-    border:       '1px solid rgba(255,255,255,0.1)',
-    color:        '#F1F5F9',
-    borderRadius: '0.5rem',
-    padding:      '0.35rem 0.6rem',
-    fontSize:     '0.82rem',
-    cursor:       'pointer',
+    background: 'rgba(255,255,255,0.06)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    color: '#F1F5F9', borderRadius: '0.5rem',
+    padding: '0.35rem 0.6rem', fontSize: '0.82rem', cursor: 'pointer',
   } as React.CSSProperties,
 
-  statGrid: {
-    display:               'grid',
-    gridTemplateColumns:   '1fr 1fr',
-    gap:                   '0.75rem',
-  },
+  statGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' },
 
   statItem: {
-    background:   'rgba(255,255,255,0.03)',
-    border:       '1px solid rgba(255,255,255,0.06)',
-    borderRadius: '0.75rem',
-    padding:      '0.75rem',
-    textAlign:    'center' as const,
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px solid rgba(255,255,255,0.06)',
+    borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' as const,
   },
 
   btnDanger: {
-    background:   'rgba(239,68,68,0.1)',
-    border:       '1px solid rgba(239,68,68,0.2)',
-    color:        '#F87171',
-    borderRadius: '0.75rem',
-    padding:      '0.75rem 1.5rem',
-    cursor:       'pointer',
-    fontSize:     '0.9rem',
-    width:        '100%',
-    transition:   'background 0.2s',
+    background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
+    color: '#F87171', borderRadius: '0.75rem',
+    padding: '0.75rem 1.5rem', cursor: 'pointer',
+    fontSize: '0.9rem', width: '100%',
   } as React.CSSProperties,
 };
