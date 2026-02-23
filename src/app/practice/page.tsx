@@ -389,16 +389,11 @@ export default function PracticePage() {
         {/* Управление */}
         <div style={styles.controls}>
           <button style={styles.controlBtn} onClick={handlePause}>
-            <img
-              src={session.isPaused ? '/images/ui/icon-play.png' : '/images/ui/icon-pause.png'}
-              alt={session.isPaused ? 'продолжить' : 'пауза'}
-              style={{ width: '20px', height: '20px', marginRight: '0.4rem', verticalAlign: 'middle' }}
-            />
-            {session.isPaused ? 'Продолжить' : 'Пауза'}
+            {session.isPaused ? '▶' : '⏸'}
           </button>
           <button style={{ ...styles.controlBtn, color: '#64748B' }} onClick={handleStop}>
             <img
-              src="/images/ui/icon-close.png" alt="стоп"
+              src="✕ Стоп" alt="стоп"
               style={{ width: '16px', height: '16px', marginRight: '0.4rem', verticalAlign: 'middle', opacity: 0.4 }}
             />
             Стоп
