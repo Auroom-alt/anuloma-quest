@@ -244,7 +244,7 @@ export default function PracticePage() {
           <div style={styles.characterWrap}>
             {phase?.nostril === 'left' && (
               <img
-                src="/images/ui/lung-left.png" alt="левая ноздря"
+                src="⬅️" alt="левая ноздря"
                 style={{
                   position: 'absolute', left: '5%', height: '80px', opacity: 0.6,
                   filter: 'drop-shadow(0 0 12px #60A5FA)',
@@ -269,7 +269,7 @@ export default function PracticePage() {
             />
             {phase?.nostril === 'right' && (
               <img
-                src="/images/ui/lung-right.png" alt="правая ноздря"
+                src="➡️" alt="правая ноздря"
                 style={{
                   position: 'absolute', right: '5%', height: '80px', opacity: 0.6,
                   filter: 'drop-shadow(0 0 12px #FBBF24)',
