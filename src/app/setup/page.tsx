@@ -145,21 +145,61 @@ export default function SetupPage() {
             </div>
           )}
 
-          {/* КНОПКА СТАРТ */}
-          <button
-            style={{
-              ...styles.btnStart,
-              transform:  hovered ? 'scale(1.03)' : 'scale(1)',
-              boxShadow:  hovered
-                ? '0 0 40px 12px rgba(251,191,36,0.45)'
-                : '0 0 20px 4px rgba(251,191,36,0.25)',
-            }}
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
-            onClick={() => router.push('/practice')}
-          >
-            🌬️ Начать практику
-          </button>
+          {/* Кнопки старта */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.5rem' }}>
+
+            {/* Главная кнопка — с разминкой */}
+            <button
+              style={{
+                background:   'linear-gradient(135deg, #F59E0B, #FBBF24)',
+                color:        '#0a0a0a',
+                fontWeight:   700,
+                fontSize:     '1rem',
+                padding:      '0.9rem 2rem',
+                borderRadius: '999px',
+                border:       'none',
+                cursor:       'pointer',
+                width:        '100%',
+                boxShadow:    '0 0 25px rgba(251,191,36,0.3)',
+                transition:   'all 0.2s',
+              }}
+              onClick={() => router.push('/warmup')}
+            >
+              🔥 Начать с разминкой
+            </button>
+
+            {/* Второстепенная — сразу к практике */}
+            <button
+              style={{
+                background:   'rgba(255,255,255,0.05)',
+                color:        '#94A3B8',
+                fontWeight:   500,
+                fontSize:     '0.95rem',
+                padding:      '0.85rem 2rem',
+                borderRadius: '999px',
+                border:       '1px solid rgba(255,255,255,0.08)',
+                cursor:       'pointer',
+                width:        '100%',
+                transition:   'all 0.2s',
+              }}
+              onClick={() => router.push('/practice')}
+            >
+              🌬️ Сразу к практике
+            </button>
+
+            {/* Назад */}
+            <button
+              style={{
+                background: 'none', border: 'none',
+                color: '#475569', fontSize: '0.85rem',
+                cursor: 'pointer', padding: '0.5rem',
+              }}
+              onClick={() => router.back()}
+            >
+              ← Назад
+            </button>
+
+          </div>
 
           {/* ЦИТАТА */}
           <div style={styles.quoteBox}>
