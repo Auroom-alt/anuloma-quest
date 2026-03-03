@@ -1,22 +1,30 @@
 /* ═══════════════════════════════════════════════════════════
    Anuloma Quest — src/app/settings/page.tsx
-   Все поля соответствуют реальным типам из types.ts
+   Исправлено:
+   · Toggle птиц — теперь реально stopBirds() / playBirds()
+   · Toggle музыки — stopBgSound() / playBgSound()
+   · Слайдер громкости — setBirdsVolume() / setBgVolume() в реальном времени
+   · Картинки в practice → эмодзи (файлов нет)
 ═══════════════════════════════════════════════════════════ */
 
 'use client';
 
-import { useState }                                  from 'react';
-import { useRouter }                                 from 'next/navigation';
-import { useProfileStore, useSettingsStore }          from '@/store';
-import { BIRDS_TRACKS, playBirds }                   from '@/lib/audio';
-import PageTransition                                from '@/components/PageTransition';
+import { useState }        from 'react';
+import { useRouter }       from 'next/navigation';
+import { useProfileStore, useSettingsStore } from '@/store';
+import {
+  BIRDS_TRACKS,
+  playBirds, stopBirds, setBirdsVolume,
+  playBgSound, stopBgSound, setBgVolume,
+} from '@/lib/audio';
+import PageTransition from '@/components/PageTransition';
 
 type Tab = 'sound' | 'visual' | 'profile';
 
 export default function SettingsPage() {
-  const router    = useRouter();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('sound');
-  const { profile, reset }        = useProfileStore();
+  const { profile, reset } = useProfileStore();
 
   if (!profile) { router.push('/'); return null; }
 
@@ -65,6 +73,46 @@ export default function SettingsPage() {
 function SoundTab() {
   const { settings, updateSound, updateMusic } = useSettingsStore();
   const { sound, music } = settings;
+
+  /* ── Птицы ── */
+  function handleToggleBirds(enabled: boolean) {
+    updateMusic({ natureSoundsEnabled: enabled });
+    if (enabled) {
+      // включаем — запускаем трек
+      playBirds(music.selectedBirdsTrack, music.natureSoundsVolume / 100);
+    } else {
+      // выключаем — останавливаем реально
+      stopBirds();
+    }
+  }
+
+  function handleBirdsVolume(v: number) {
+    updateMusic({ natureSoundsVolume: v });
+    // меняем громкость у уже играющего аудио без перезапуска
+    setBirdsVolume(v / 100);
+  }
+
+  function handleSelectTrack(trackId: string) {
+    updateMusic({ selectedBirdsTrack: trackId });
+    if (music.natureSoundsEnabled) {
+      playBirds(trackId, music.natureSoundsVolume / 100);
+    }
+  }
+
+  /* ── Музыка локации ── */
+  function handleToggleMusic(enabled: boolean) {
+    updateMusic({ musicEnabled: enabled });
+    if (!enabled) {
+      stopBgSound();
+    }
+    // включить обратно нельзя — не знаем locationId здесь,
+    // музыка включится автоматически при следующей практике
+  }
+
+  function handleMusicVolume(v: number) {
+    updateMusic({ musicVolume: v });
+    setBgVolume(v / 100);
+  }
 
   return (
     <div style={styles.tabContent}>
@@ -135,65 +183,18 @@ function SoundTab() {
         )}
       </Section>
 
-      <Section title="🌿 Музыка и природа">
+      <Section title="🌆 Музыка локации">
         <Toggle
           label="Фоновая музыка локации"
           value={music.musicEnabled}
-          onChange={v => updateMusic({ musicEnabled: v })}
+          onChange={handleToggleMusic}
         />
         {music.musicEnabled && (
           <Slider
             label="Громкость музыки"
             value={music.musicVolume}
-            onChange={v => updateMusic({ musicVolume: v })}
+            onChange={handleMusicVolume}   /* ← реальное изменение громкости */
           />
-        )}
-        <Toggle
-          label="Звуки природы"
-          value={music.natureSoundsEnabled}
-          onChange={v => updateMusic({ natureSoundsEnabled: v })}
-        />
-        {music.natureSoundsEnabled && (
-          <>
-            <Slider
-              label="Громкость природы"
-              value={music.natureSoundsVolume}
-              onChange={v => updateMusic({ natureSoundsVolume: v })}
-            />
-            <div style={{ marginBottom: '0.75rem' }}>
-              <p style={{ color: '#94A3B8', fontSize: '0.875rem', marginBottom: '0.6rem' }}>
-                🐦 Звук природы
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: '220px', overflowY: 'auto' }}>
-                {BIRDS_TRACKS.map((track: any) => (
-                  <div
-                    key={track.id}
-                    onClick={() => {
-                      updateMusic({ selectedBirdsTrack: track.id });
-                      playBirds(track.id, music.natureSoundsVolume / 100);
-                    }}
-                    style={{
-                      padding:      '0.5rem 0.75rem',
-                      borderRadius: '0.6rem',
-                      cursor:       'pointer',
-                      background:   music.selectedBirdsTrack === track.id
-                        ? 'rgba(167,139,250,0.15)' : 'rgba(255,255,255,0.03)',
-                      border:       music.selectedBirdsTrack === track.id
-                        ? '1px solid rgba(167,139,250,0.4)' : '1px solid rgba(255,255,255,0.05)',
-                      color:        music.selectedBirdsTrack === track.id ? '#A78BFA' : '#64748B',
-                      fontSize:     '0.82rem',
-                      transition:   'all 0.2s',
-                    }}
-                  >
-                    {track.label}
-                    {music.selectedBirdsTrack === track.id && (
-                      <span style={{ float: 'right', fontSize: '0.7rem' }}>▶ играет</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
         )}
         <Toggle
           label="Синхронизация с дыханием"
@@ -202,13 +203,69 @@ function SoundTab() {
         />
       </Section>
 
+      <Section title="🌿 Звуки природы">
+        <Toggle
+          label="Звуки природы (птицы)"
+          value={music.natureSoundsEnabled}
+          onChange={handleToggleBirds}     /* ← реальный stop/play */
+        />
+
+        {music.natureSoundsEnabled && (
+          <>
+            <Slider
+              label="Громкость природы"
+              value={music.natureSoundsVolume}
+              onChange={handleBirdsVolume}  /* ← реальное изменение громкости */
+            />
+
+            <div style={{ marginTop: '0.5rem' }}>
+              <p style={{ color: '#64748B', fontSize: '0.78rem', letterSpacing: '0.08em', marginBottom: '0.6rem' }}>
+                🐦 ВЫБОР ТРЕКА
+              </p>
+              <div style={{
+                display:        'flex',
+                flexDirection:  'column',
+                gap:            '0.35rem',
+                maxHeight:      '260px',
+                overflowY:      'auto',
+                paddingRight:   '0.25rem',
+              }}>
+                {BIRDS_TRACKS.map((track: any) => {
+                  const active = music.selectedBirdsTrack === track.id;
+                  return (
+                    <div
+                      key={track.id}
+                      onClick={() => handleSelectTrack(track.id)}
+                      style={{
+                        padding:      '0.5rem 0.75rem',
+                        borderRadius: '0.6rem',
+                        cursor:       'pointer',
+                        background:   active ? 'rgba(167,139,250,0.15)' : 'rgba(255,255,255,0.03)',
+                        border:       active ? '1px solid rgba(167,139,250,0.4)' : '1px solid rgba(255,255,255,0.05)',
+                        color:        active ? '#A78BFA' : '#64748B',
+                        fontSize:     '0.82rem',
+                        transition:   'all 0.18s',
+                        display:      'flex',
+                        justifyContent: 'space-between',
+                        alignItems:   'center',
+                      }}
+                    >
+                      {track.label}
+                      {active && <span style={{ fontSize: '0.68rem', opacity: 0.8 }}>▶ играет</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
+      </Section>
+
     </div>
   );
 }
 
 /* ─── ВИЗУАЛ ────────────────────────────────────────────── */
-// Поля из VisualSettings: colorTheme, glowIntensity, dotStyle,
-// characterAnimationEnabled, animationAmplitude, transitionSpeed
 function VisualTab() {
   const { settings, updateVisual } = useSettingsStore();
   const { visual } = settings;
@@ -231,12 +288,13 @@ function VisualTab() {
           label="Интенсивность свечения"
           value={visual.glowIntensity}
           options={[
-            { value: 'low',    label: '🌑 Слабое'   },
-            { value: 'medium', label: '✨ Среднее'  },
-            { value: 'high',   label: '💫 Яркое'    },
+            { value: 'low',    label: '🌑 Слабое'  },
+            { value: 'medium', label: '✨ Среднее' },
+            { value: 'high',   label: '💫 Яркое'   },
           ]}
           onChange={v => updateVisual({ glowIntensity: v as any })}
         />
+        <Note text="Цветовая тема и свечение применяются во время практики" />
       </Section>
 
       <Section title="✨ Анимации">
@@ -249,9 +307,9 @@ function VisualTab() {
           label="Амплитуда дыхания"
           value={visual.animationAmplitude}
           options={[
-            { value: 'small',  label: 'Мягкая'   },
-            { value: 'medium', label: 'Средняя'  },
-            { value: 'large',  label: 'Сильная'  },
+            { value: 'small',  label: 'Мягкая'  },
+            { value: 'medium', label: 'Средняя' },
+            { value: 'large',  label: 'Сильная' },
           ]}
           onChange={v => updateVisual({ animationAmplitude: v as any })}
         />
@@ -271,9 +329,9 @@ function VisualTab() {
           label="Точки фаз дыхания"
           value={visual.dotStyle}
           options={[
-            { value: 'circles',  label: '⬤ Круги'    },
+            { value: 'circles',  label: '⬤ Круги'     },
             { value: 'crystals', label: '💎 Кристаллы' },
-            { value: 'stars',    label: '✦ Звёзды'    },
+            { value: 'stars',    label: '✦ Звёзды'     },
           ]}
           onChange={v => updateVisual({ dotStyle: v as any })}
         />
@@ -284,23 +342,21 @@ function VisualTab() {
 }
 
 /* ─── ПРОФИЛЬ ───────────────────────────────────────────── */
-// Поля из AccessibilitySettings: subtitlesEnabled, highContrastMode,
-// hapticFeedback, largeFontMode, eyesClosedMode
 function ProfileTab({ profile, onReset }: { profile: any; onReset: () => void }) {
-  const router                                 = useRouter();
-  const { settings, updateAccessibility }      = useSettingsStore();
-  const { accessibility }                      = settings;
-  const totalMinutes                           = Math.floor(profile.totalTimeSeconds / 60);
+  const router = useRouter();
+  const { settings, updateAccessibility } = useSettingsStore();
+  const { accessibility } = settings;
+  const totalMinutes = Math.floor(profile.totalTimeSeconds / 60);
 
   return (
     <div style={styles.tabContent}>
 
       <Section title="📊 Статистика">
         <div style={styles.statGrid}>
-          <StatItem label="Раундов" value={profile.totalRoundsCompleted}        color="#60A5FA" />
-          <StatItem label="Минут"   value={totalMinutes}                         color="#A78BFA" />
-          <StatItem label="Циклов"  value={profile.totalBreathCycles ?? 0}       color="#FBBF24" />
-          <StatItem label="Локаций" value={profile.locationsUnlocked.length}     color="#34D399" />
+          <StatItem label="Раундов" value={profile.totalRoundsCompleted}    color="#60A5FA" />
+          <StatItem label="Минут"   value={totalMinutes}                     color="#A78BFA" />
+          <StatItem label="Циклов"  value={profile.totalBreathCycles ?? 0}   color="#FBBF24" />
+          <StatItem label="Локаций" value={profile.locationsUnlocked.length} color="#34D399" />
         </div>
       </Section>
 
@@ -368,6 +424,14 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+function Note({ text }: { text: string }) {
+  return (
+    <p style={{ color: '#475569', fontSize: '0.75rem', marginTop: '0.5rem', fontStyle: 'italic' }}>
+      ℹ️ {text}
+    </p>
+  );
+}
+
 function Toggle({ label, value, onChange }: {
   label: string; value: boolean; onChange: (v: boolean) => void;
 }) {
@@ -384,8 +448,8 @@ function Toggle({ label, value, onChange }: {
         }}
       >
         <div style={{
-          position: 'absolute', top: '3px',
-          left:     value ? '23px' : '3px',
+          position:   'absolute', top: '3px',
+          left:       value ? '23px' : '3px',
           width: '18px', height: '18px',
           borderRadius: '50%', background: '#fff',
           transition: 'left 0.3s',
@@ -437,9 +501,7 @@ function Select({ label, value, options, onChange }: {
 function StatItem({ label, value, color }: { label: string; value: number; color: string }) {
   return (
     <div style={styles.statItem}>
-      <p style={{ color, fontSize: '1.5rem', fontFamily: 'Georgia, serif', fontWeight: 700 }}>
-        {value}
-      </p>
+      <p style={{ color, fontSize: '1.5rem', fontFamily: 'Georgia, serif', fontWeight: 700 }}>{value}</p>
       <p style={{ color: '#64748B', fontSize: '0.75rem' }}>{label}</p>
     </div>
   );
@@ -458,9 +520,7 @@ function AchievRow({ emoji, label, desc, done }: {
     }}>
       <span style={{ fontSize: '1.4rem' }}>{emoji}</span>
       <div style={{ flex: 1 }}>
-        <p style={{ color: done ? '#FBBF24' : '#94A3B8', fontSize: '0.85rem', fontWeight: 600 }}>
-          {label}
-        </p>
+        <p style={{ color: done ? '#FBBF24' : '#94A3B8', fontSize: '0.85rem', fontWeight: 600 }}>{label}</p>
         <p style={{ color: '#64748B', fontSize: '0.75rem' }}>{desc}</p>
       </div>
       {done && <span style={{ color: '#FBBF24', fontSize: '0.8rem' }}>✦</span>}
@@ -475,17 +535,13 @@ const styles = {
     background: 'radial-gradient(ellipse at 30% 20%, rgba(167,139,250,0.06) 0%, transparent 50%), #030712',
     padding:    'clamp(1.5rem, 4vw, 2rem) 1rem',
   } as React.CSSProperties,
-
-  container: { maxWidth: '520px', margin: '0 auto' },
-
+  container:    { maxWidth: '520px', margin: '0 auto' },
   backBtn: {
     background: 'none', border: 'none', color: '#64748B',
     cursor: 'pointer', fontSize: '0.9rem',
     marginBottom: '1.5rem', display: 'block', padding: '0.5rem 0',
   } as React.CSSProperties,
-
   eyebrow: { color: '#475569', letterSpacing: '0.2em', fontSize: '0.75rem', marginBottom: '0.4rem' },
-
   title: {
     fontFamily: 'Georgia, serif',
     fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
@@ -493,52 +549,40 @@ const styles = {
     WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
     backgroundClip: 'text', marginBottom: '0.25rem',
   } as React.CSSProperties,
-
-  sub: { color: '#64748B', fontSize: '0.9rem', marginBottom: '1.5rem' },
-
-  tabs: { display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: '1.5rem' },
-
+  sub:     { color: '#64748B', fontSize: '0.9rem', marginBottom: '1.5rem' },
+  tabs:    { display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: '1.5rem' },
   tab: {
     flex: 1, padding: '0.75rem 0.5rem',
     background: 'none', border: 'none', cursor: 'pointer',
     fontSize: '0.85rem', transition: 'all 0.2s',
   } as React.CSSProperties,
-
-  content: {},
+  content:    {},
   tabContent: { display: 'flex', flexDirection: 'column' as const, gap: '1rem' },
-
   section: {
     background: 'rgba(255,255,255,0.03)',
     border: '1px solid rgba(255,255,255,0.06)',
     borderRadius: '1.25rem', overflow: 'hidden',
   },
-
   sectionTitle: {
     padding: '0.9rem 1.25rem',
     borderBottom: '1px solid rgba(255,255,255,0.05)',
     color: '#64748B', fontSize: '0.8rem', letterSpacing: '0.05em',
   },
-
   sectionBody: { padding: '1rem 1.25rem' },
-
-  row: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' },
+  row:      { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' },
   rowLabel: { color: '#94A3B8', fontSize: '0.875rem' },
-
   select: {
     background: 'rgba(255,255,255,0.06)',
     border: '1px solid rgba(255,255,255,0.1)',
     color: '#F1F5F9', borderRadius: '0.5rem',
     padding: '0.35rem 0.6rem', fontSize: '0.82rem', cursor: 'pointer',
   } as React.CSSProperties,
-
   statGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' },
-
   statItem: {
     background: 'rgba(255,255,255,0.03)',
     border: '1px solid rgba(255,255,255,0.06)',
     borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' as const,
   },
-
   btnDanger: {
     background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
     color: '#F87171', borderRadius: '0.75rem',

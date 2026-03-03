@@ -242,7 +242,16 @@ export default function PracticePage() {
         {/* Персонаж */}
         {!roundPause && (
           <div style={styles.characterWrap}>
-            
+            {phase?.nostril === 'left' && (
+              <img
+                src="/images/ui/lung-left.png" alt="левая ноздря"
+                style={{
+                  position: 'absolute', left: '5%', height: '80px', opacity: 0.6,
+                  filter: 'drop-shadow(0 0 12px #60A5FA)',
+                  animation: 'pulse-soft 2s ease-in-out infinite',
+                }}
+              />
+            )}
             <img
               src={profile?.character === 'female'
                 ? '/images/chars/char-lila.png'
@@ -258,7 +267,16 @@ export default function PracticePage() {
                 transition: 'filter 0.8s ease',
               }}
             />
-            
+            {phase?.nostril === 'right' && (
+              <img
+                src="/images/ui/lung-right.png" alt="правая ноздря"
+                style={{
+                  position: 'absolute', right: '5%', height: '80px', opacity: 0.6,
+                  filter: 'drop-shadow(0 0 12px #FBBF24)',
+                  animation: 'pulse-soft 2s ease-in-out infinite',
+                }}
+              />
+            )}
           </div>
         )}
 
@@ -371,9 +389,9 @@ export default function PracticePage() {
         {/* Управление */}
         <div style={styles.controls}>
           <button style={styles.controlBtn} onClick={handlePause}>
-            {session.isPaused ? '▶' : '⏸'}
+            {session.isPaused ? '▶ Продолжить' : '⏸ Пауза'}
           </button>
-          <button style={{ ...styles.controlBtn, color: '#64748B' }} onClick={handleStop}>
+          <button style={{ ...styles.controlBtn, color: '#475569' }} onClick={handleStop}>
             ✕ Стоп
           </button>
         </div>
