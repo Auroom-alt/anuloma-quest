@@ -7,6 +7,7 @@ import { useProfileStore, usePracticeSettings, useSessionStore, useSettingsStore
 import { LOCATIONS, getPhasesForCycle, CYCLES_PER_ROUND, ROUND_PAUSE_SECONDS, formatTime } from '@/constants';
 import { playPhaseSound, playGong, playBgSound, stopBgSound, playBirds, stopBirds, playOm, stopOm } from '@/lib/audio';
 import PageTransition from '@/components/PageTransition';
+import AudioPanel from '@/components/AudioPanel';
 
 const BG_NAMES = ['city','forest','japanese','ocean','forest-path','riverside','spring','meadow','hilltop','mountain'];
 function bgUrl(id: number) {
@@ -358,6 +359,11 @@ export default function PracticePage() {
             <button style={{ ...styles.controlBtn, color: '#475569' }} onClick={handleStop}>
               ✕ Стоп
             </button>
+            {/* Аудио панель */}
+          <AudioPanel locationId={startLocationId} />
+
+          {/* Кнопки */}
+          <div style={styles.controls}></div>
           </div>
 
         </div>
