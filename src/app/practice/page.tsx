@@ -1,140 +1,116 @@
-/* ═══════════════════════════════════════════════════════════
-   Anuloma Quest — src/app/practice/page.tsx
-   Исправлено:
-   · URL фоновых картинок: bg-0${Math.min(9,id)} → правильный padStart(2,'0')
-   · Цвета цитат: #1E293B / #0F172A → видимые #94A3B8 / #64748B
-   · Прочие невидимые цвета (#334155, #1E293B в тексте)
-   · FinishScreen кнопка "На главную": #334155 → #64748B
-═══════════════════════════════════════════════════════════ */
-
 'use client';
 
-import { useEffect, useRef, useState }                              from 'react';
-import { useRouter }                                                from 'next/navigation';
-import { usePracticeSettings, useSessionStore, useProfileStore, useSettingsStore } from '@/store';
-import { getPhasesForCycle, formatTime, CYCLES_PER_ROUND, ROUND_PAUSE_SECONDS, LOCATIONS } from '@/constants';
-import { playPhaseSound, playGong, playOm, playBgSound, stopBgSound, stopSpeech, playBirds, stopBirds, BIRDS_TRACKS } from '@/lib/audio';
-import { motion, AnimatePresence }                                  from 'framer-motion';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { useRouter }            from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useProfileStore, usePracticeSettings, useSessionStore, useSettingsStore } from '@/store';
+import { LOCATIONS, getPhasesForCycle, CYCLES_PER_ROUND, ROUND_PAUSE_SECONDS, formatTime } from '@/constants';
+import { playPhaseSound, playGong, playBgSound, stopBgSound, playBirds, stopBirds, playOm, stopOm } from '@/lib/audio';
+import PageTransition from '@/components/PageTransition';
 
-/* Имена фонов по порядку локаций */
-const BG_NAMES = [
-  'city', 'forest', 'garden', 'ocean', 'path',
-  'gazebo', 'spring', 'meadow', 'hill', 'mountain',
-];
-
-/** Правильный URL фона — padStart гарантирует bg-01…bg-10 */
-function bgUrl(locationId: number): string {
-  const id   = Math.min(10, Math.max(1, locationId));
-  const num  = String(id).padStart(2, '0');          // 1→"01", 10→"10"
-  const name = BG_NAMES[id - 1];
-  return `/images/bg-${num}-${name}.jpg`;
+const BG_NAMES = ['city','forest','japanese','ocean','forest-path','riverside','spring','meadow','hilltop','mountain'];
+function bgUrl(id: number) {
+  const n = String(Math.min(10, Math.max(1, id))).padStart(2, '0');
+  return `/images/bg-${n}-${BG_NAMES[id-1]}.jpg`;
 }
 
+type AppScreen = 'countdown' | 'practice' | 'finish';
+
 export default function PracticePage() {
-  const router = useRouter();
-  const { rounds, cycle, startLocationId }                                   = usePracticeSettings();
+  const router   = useRouter();
+  const { profile, addCompletedRound } = useProfileStore();
+  const { rounds, cycle, startLocationId } = usePracticeSettings();
   const { session, start, pause, resume, stop, tick, nextPhase, advanceCycle, advanceRound } = useSessionStore();
-  const { addCompletedRound, profile }                                       = useProfileStore();
-  const { settings, updateMusic }                                            = useSettingsStore();
+  const { settings } = useSettingsStore();
 
-  const [roundPause, setRoundPause] = useState(false);
-  const [pauseCount, setPauseCount] = useState(ROUND_PAUSE_SECONDS);
-  const [finished,   setFinished]   = useState(false);
-  const [audioOpen,  setAudioOpen]  = useState(false);
+  const [screen,      setScreen]      = useState<AppScreen>('countdown');
+  const [countdown,   setCountdown]   = useState(3);
+  const [roundPause,  setRoundPause]  = useState(false);
+  const [pauseCount,  setPauseCount]  = useState(ROUND_PAUSE_SECONDS);
+  const [sessionSecs, setSessionSecs] = useState(0);
 
-  const intervalRef  = useRef<ReturnType<typeof setInterval> | null>(null);
-  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef      = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pauseRef      = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countdownRef  = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const phases        = getPhasesForCycle(cycle);
-  const phase         = phases[session.currentPhaseIndex];
-  const locationIndex = Math.min(9, (startLocationId - 1) + (session.currentRound - 1));
-  const location      = LOCATIONS[locationIndex];
+  const location = LOCATIONS.find(l => l.id === startLocationId) ?? LOCATIONS[0];
+  const phases   = getPhasesForCycle(cycle);
+  const phase    = phases[session.currentPhaseIndex];
 
-  /* ─── Старт ──────────────────────────────────────────── */
+  // Обратный отсчёт 3-2-1
   useEffect(() => {
-    start();
+    if (screen !== 'countdown') return;
     playOm();
-    if (settings.music.musicEnabled) {
-      const idx = Math.min(9, (startLocationId - 1) + session.currentRound);
-      playBgSound(LOCATIONS[idx].id, settings.music.musicVolume / 100);
-    }
-    if (settings.music.natureSoundsEnabled) {
-      playBirds(settings.music.selectedBirdsTrack, settings.music.natureSoundsVolume / 100);
-    }
-    return () => {
-      if (intervalRef.current)  clearInterval(intervalRef.current);
-      if (countdownRef.current) clearInterval(countdownRef.current);
-      stopSpeech();
-      stopBgSound();
-      stopBirds();
-    };
-  }, []);
+    countdownRef.current = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownRef.current!);
+          stopOm();
+          setScreen('practice');
+          start();
+          // Запускаем звуки
+          if (settings.music.musicEnabled)        playBgSound(startLocationId, settings.music.musicVolume / 100);
+          if (settings.music.natureSoundsEnabled)  playBirds(settings.music.selectedBirdsTrack, settings.music.natureSoundsVolume / 100);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(countdownRef.current!);
+  }, [screen]);
 
-  /* ─── Тик таймера ────────────────────────────────────── */
+  // Основной тик
   useEffect(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    if (!session.isActive || session.isPaused || roundPause || finished) return;
-    intervalRef.current = setInterval(() => tick(), 1000);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [session.isActive, session.isPaused, roundPause, finished]);
+    if (screen !== 'practice' || !session.isActive || session.isPaused || roundPause) return;
+    timerRef.current = setInterval(() => {
+      tick();
+      setSessionSecs(s => s + 1);
+    }, 1000);
+    return () => clearInterval(timerRef.current!);
+  }, [screen, session.isActive, session.isPaused, roundPause]);
 
-  /* ─── Конец фазы ─────────────────────────────────────── */
+  // Логика фаз
   useEffect(() => {
-    if (!session.isActive || session.isPaused || !phase) return;
-    if (session.secondsInPhase >= phase.duration) handlePhaseEnd();
+    if (screen !== 'practice' || !session.isActive || session.isPaused || roundPause) return;
+    if (session.secondsInPhase >= phase.duration) {
+      const nextIndex = (session.currentPhaseIndex + 1) % 6;
+      if (nextIndex === 0) {
+        // Цикл завершён
+        if (session.currentCycle >= CYCLES_PER_ROUND) {
+          // Раунд завершён
+          if (session.currentRound >= rounds) {
+            handleFinish();
+          } else {
+            playGong(0.35);
+            addCompletedRound(sessionSecs);
+            setRoundPause(true);
+            setPauseCount(ROUND_PAUSE_SECONDS);
+          }
+        } else {
+          advanceCycle();
+        }
+      } else {
+        nextPhase();
+        const nextPhaseData = phases[nextIndex];
+        if (settings.sound.voiceEnabled || settings.sound.drumEnabled || settings.sound.guitarEnabled) {
+          playPhaseSound(nextPhaseData.phase, nextPhaseData.type, {
+            guitar: settings.sound.guitarEnabled, drum: settings.sound.drumEnabled,
+            guitarVolume: settings.sound.guitarVolume, drumVolume: settings.sound.drumVolume,
+            voice: settings.sound.voiceEnabled, voiceVolume: settings.sound.voiceVolume,
+            voiceLang: settings.sound.voiceLanguage === 'en' ? 'en' : 'ru',
+          });
+        }
+      }
+    }
   }, [session.secondsInPhase]);
 
-  function handlePhaseEnd() {
-    const isLastPhase   = session.currentPhaseIndex === 5;
-    const nextIndex     = isLastPhase ? 0 : session.currentPhaseIndex + 1;
-    const upcomingPhase = phases[nextIndex];
-
-    try {
-      playPhaseSound(upcomingPhase.phase, upcomingPhase.type, {
-        guitar:       settings.sound.guitarEnabled,
-        drum:         settings.sound.drumEnabled,
-        guitarVolume: settings.sound.guitarVolume,
-        drumVolume:   settings.sound.drumVolume,
-        voice:        settings.sound.voiceEnabled,
-        voiceVolume:  settings.sound.voiceVolume,
-        voiceLang:    settings.sound.voiceLanguage === 'en' ? 'en' : 'ru',
-      });
-    } catch (e) {
-      console.error('audio error:', e);
-    }
-
-    if (settings.accessibility.hapticFeedback && navigator.vibrate) {
-      navigator.vibrate(upcomingPhase.type === 'hold' ? [100, 50, 100] : [80]);
-    }
-
-    if (isLastPhase) {
-      session.currentCycle >= CYCLES_PER_ROUND ? handleRoundEnd() : advanceCycle();
-    } else {
-      nextPhase();
-    }
-  }
-
-  function handleRoundEnd() {
-    const roundSeconds = (cycle.inhale + cycle.hold + cycle.exhale) * 2 * CYCLES_PER_ROUND;
-    addCompletedRound(roundSeconds);
-    playGong();
-
-    if (session.currentRound >= rounds) {
-      setFinished(true);
-      return;
-    }
-
-    if (settings.music.musicEnabled) {
-      playBgSound(Math.min(10, session.currentRound + 1), settings.music.musicVolume / 100);
-    }
-
-    setRoundPause(true);
-    setPauseCount(ROUND_PAUSE_SECONDS);
-
-    countdownRef.current = setInterval(() => {
+  // Пауза между раундами
+  useEffect(() => {
+    if (!roundPause) return;
+    pauseRef.current = setInterval(() => {
       setPauseCount(p => {
         if (p <= 1) {
-          clearInterval(countdownRef.current!);
+          clearInterval(pauseRef.current!);
           setRoundPause(false);
           advanceRound(session.currentRound + 1);
           return ROUND_PAUSE_SECONDS;
@@ -142,683 +118,388 @@ export default function PracticePage() {
         return p - 1;
       });
     }, 1000);
+    return () => clearInterval(pauseRef.current!);
+  }, [roundPause]);
+
+  function handleFinish() {
+    clearInterval(timerRef.current!);
+    addCompletedRound(sessionSecs);
+    stop(); stopBgSound(); stopBirds();
+    setScreen('finish');
   }
 
-  function handlePause() { session.isPaused ? resume() : pause(); }
+  function handlePause() {
+    if (session.isPaused) resume(); else pause();
+  }
 
   function handleStop() {
-    stop(); stopSpeech(); stopBgSound(); stopBirds();
+    clearInterval(timerRef.current!);
+    stop(); stopBgSound(); stopBirds();
     router.push('/');
   }
 
   function skipPause() {
-    if (countdownRef.current) clearInterval(countdownRef.current);
+    clearInterval(pauseRef.current!);
     setRoundPause(false);
     advanceRound(session.currentRound + 1);
   }
+  // Прогресс фазы
+  const phaseProgress = phase ? Math.min(1, session.secondsInPhase / phase.duration) : 0;
+  const glowMap = { low: '0 0 20px 4px', medium: '0 0 35px 8px', high: '0 0 55px 14px' };
+  const glowSize = glowMap[settings.visual.glowIntensity] ?? glowMap.medium;
 
-  const phaseProgress   = phase ? Math.min(1, session.secondsInPhase / phase.duration) : 0;
-  const remaining       = phase ? Math.max(0, phase.duration - session.secondsInPhase) : 0;
-  const locationGradient = location.gradient ?? '';
-  const glowColor =
-    phase?.type === 'hold'           ? '#A78BFA' :
-    phase?.nostril === 'left'        ? '#60A5FA' : '#FBBF24';
-
-  /* ─── ФИНИШ ──────────────────────────────────────────── */
-  if (finished) return (
-    <FinishScreen
-      heroName={profile?.heroName ?? 'Герой'}
-      rounds={rounds}
-      onRepeat={() => { stop(); router.push('/setup'); }}
-      onHome={()   => { stop(); router.push('/');      }}
-      onMap={()    => { stop(); router.push('/map');   }}
-      currentLocationId={startLocationId}
-    />
-  );
-
-  /* ─── ОСНОВНОЙ ЭКРАН ─────────────────────────────────── */
-  return (
-    <main style={styles.page}>
-
-      {/* Фон локации — ИСПРАВЛЕНО: bgUrl() вместо bg-0${Math.min(9,...)} */}
-      <div style={{
-        position:         'fixed',
-        inset:            0,
-        backgroundImage:  `url('${bgUrl(location.id)}')`,
-        backgroundSize:   'cover',
-        backgroundPosition: 'center',
-        opacity:          0.15,
-        zIndex:           0,
-        transition:       'background-image 1.5s ease',
-      }} />
-
-      {/* Градиент поверх фона */}
-      <div style={{
-        position:   'fixed',
-        inset:      0,
-        background: `${locationGradient}, rgba(3,7,18,0.75)`,
-        zIndex:     1,
-      }} />
-
-      {/* Контент */}
-      <div style={{ position: 'relative', zIndex: 2, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-
-        <AudioPanel
-          settings={settings}
-          updateMusic={updateMusic}
-          open={audioOpen}
-          setOpen={setAudioOpen}
-          locationId={Math.min(10, session.currentRound)}
-          onPause={handlePause}
-          isPaused={session.isPaused}
-        />
-
-        {/* Шапка */}
-        <div style={styles.header}>
-          <div>
-            <p style={styles.locationName}>{location.emoji} {location.nameRu}</p>
-            <p style={styles.roundInfo}>Раунд {session.currentRound} из {rounds}</p>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <p style={styles.timer}>{formatTime(session.totalSecondsElapsed)}</p>
-            <p style={styles.cycleInfo}>Цикл {session.currentCycle} из {CYCLES_PER_ROUND}</p>
-          </div>
-        </div>
-
-        {/* Пауза между раундами */}
-        {roundPause && (
-          <div style={styles.roundPauseBox}>
-            <p style={{ color: '#A78BFA', fontSize: '1.3rem', marginBottom: '0.5rem' }}>✦ Раунд завершён</p>
-            <p style={{ color: '#64748B', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-              Следующий раунд через <strong style={{ color: '#F1F5F9' }}>{pauseCount}</strong> сек
-            </p>
-            <p style={{ color: '#94A3B8', fontStyle: 'italic', fontSize: '0.85rem', marginBottom: '1rem' }}>
-              «Почувствуй покой. Подготовься к следующему шагу.»
-            </p>
-            <button style={styles.skipBtn} onClick={skipPause}>Пропустить паузу →</button>
-          </div>
-        )}
-
-        {/* Персонаж */}
-        {!roundPause && (
-          <div style={styles.characterWrap}>
-            {phase?.nostril === 'left' && (
-              <div style={{ position: 'absolute', left: '5%', top: '50%', transform: 'translateY(-50%)', width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(96,165,250,0.2)', border: '2px solid #60A5FA', boxShadow: '0 0 16px 6px rgba(96,165,250,0.45)', animation: 'pulse-soft 2s ease-in-out infinite' }} />
-            )}
-            <img
-              src={profile?.character === 'female'
-                ? '/images/chars/char-lila.png'
-                : '/images/chars/char-arya.png'}
-              alt="персонаж"
+  // ── ОБРАТНЫЙ ОТСЧЁТ ──
+  if (screen === 'countdown') {
+    return (
+      <main style={{ ...styles.page, backgroundImage: `url('${bgUrl(startLocationId)}')` }}>
+        <div style={styles.bgOverlay} />
+        <div style={{ position: 'relative', zIndex: 2, textAlign: 'center' }}>
+          <p style={{ color: '#94A3B8', fontSize: '0.85rem', letterSpacing: '0.2em', marginBottom: '1rem' }}>
+            {location.emoji} {location.nameRu}
+          </p>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={countdown}
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1,   opacity: 1 }}
+              exit={{    scale: 1.5,  opacity: 0 }}
+              transition={{ duration: 0.4 }}
               style={{
-                height:    '160px',
-                width:     'auto',
-                filter:    `drop-shadow(0 0 24px ${glowColor}90)`,
-                animation: phase?.type === 'hold'
-                  ? 'pulse-soft 2s ease-in-out infinite'
-                  : 'breathe 4s ease-in-out infinite',
-                transition: 'filter 0.8s ease',
+                fontSize: '8rem', fontFamily: 'Georgia, serif', fontWeight: 700,
+                background: 'linear-gradient(135deg, #818CF8, #A78BFA)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text', lineHeight: 1,
               }}
-            />
-            {phase?.nostril === 'right' && (
-              <div style={{ position: 'absolute', right: '5%', top: '50%', transform: 'translateY(-50%)', width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(251,191,36,0.2)', border: '2px solid #FBBF24', boxShadow: '0 0 16px 6px rgba(251,191,36,0.45)', animation: 'pulse-soft 2s ease-in-out infinite' }} />
-            )}
+            >
+              {countdown}
+            </motion.div>
+          </AnimatePresence>
+          <p style={{ color: '#64748B', fontSize: '1rem', marginTop: '1.5rem' }}>
+            Прими удобную позу. Расслабь плечи.
+          </p>
+          <p style={{ color: '#475569', fontSize: '0.8rem', marginTop: '0.5rem' }}>
+            {rounds} {rounds === 1 ? 'раунд' : rounds < 5 ? 'раунда' : 'раундов'} · {cycle.label}
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  // ── ФИНИШ ──
+  if (screen === 'finish') {
+    return <FinishScreen
+      rounds={rounds} sessionSecs={sessionSecs}
+      location={location} profile={profile}
+      onHome={() => router.push('/')}
+      onAgain={() => router.push('/setup')}
+    />;
+  }
+
+  // ── ПРАКТИКА ──
+  const phaseColors: Record<string, string> = {
+    'inhale-left':  '#60A5FA', 'hold-1': '#A78BFA',
+    'exhale-right': '#FBBF24', 'inhale-right': '#60A5FA',
+    'hold-2':       '#A78BFA', 'exhale-left':  '#FBBF24',
+  };
+  const currentColor = phase ? phaseColors[phase.phase] ?? '#94A3B8' : '#94A3B8';
+  const amplitude    = settings.visual.animationAmplitude === 'small' ? 1.03 : settings.visual.animationAmplitude === 'large' ? 1.1 : 1.06;
+
+  return (
+    <PageTransition>
+      <main style={{ ...styles.page, backgroundImage: `url('${bgUrl(startLocationId)}')` }}>
+        <div style={styles.bgOverlay} />
+        <div style={{ position: 'relative', zIndex: 2, width: '100%', maxWidth: '480px', margin: '0 auto', padding: '0 1rem', display: 'flex', flexDirection: 'column', minHeight: '100dvh' }}>
+
+          {/* Шапка */}
+          <div style={styles.header}>
+            <div>
+              <p style={styles.locationName}>{location.emoji} {location.nameRu}</p>
+              <p style={styles.roundInfo}>Раунд {session.currentRound} из {rounds}</p>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <p style={styles.timer}>{formatTime(session.totalSecondsElapsed)}</p>
+              <p style={styles.cycleInfo}>Цикл {session.currentCycle} из {CYCLES_PER_ROUND}</p>
+            </div>
           </div>
-        )}
 
-        {/* Фаза и таймер */}
-        {!roundPause && (
-          <>
-            <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
-              <p style={{ color: '#475569', fontSize: '0.75rem', letterSpacing: '0.2em', marginBottom: '0.4rem' }}>
-                СЕЙЧАС
+          {/* Пауза между раундами */}
+          {roundPause && (
+            <div style={styles.roundPauseBox}>
+              <p style={{ color: '#A78BFA', fontSize: '1.3rem', marginBottom: '0.5rem' }}>✦ Раунд завершён</p>
+              <p style={{ color: '#64748B', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                Следующий раунд через <strong style={{ color: '#F1F5F9' }}>{pauseCount}</strong> сек
               </p>
-
-              <AnimatePresence mode="wait">
-                <motion.p
-                  key={phase?.labelRu}
-                  initial={{ opacity: 0, y: 8  }}
-                  animate={{ opacity: 1, y: 0  }}
-                  exit={{    opacity: 0, y: -8 }}
-                  transition={{ duration: 0.3 }}
-                  style={{
-                    fontFamily:   'Georgia, serif',
-                    fontSize:     '1.8rem',
-                    fontWeight:   700,
-                    color:        glowColor,
-                    marginBottom: '0.25rem',
-                  }}
-                >
-                  {phase?.labelRu}
-                </motion.p>
-              </AnimatePresence>
-
-              <AnimatePresence mode="wait">
-                <motion.p
-                  key={remaining}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1   }}
-                  exit={{    opacity: 0, scale: 1.2 }}
-                  transition={{ duration: 0.2 }}
-                  style={{
-                    fontFamily: 'Georgia, serif',
-                    fontSize:   '4rem',
-                    fontWeight: 700,
-                    color:      '#F1F5F9',
-                    lineHeight: 1,
-                  }}
-                >
-                  {remaining}
-                </motion.p>
-              </AnimatePresence>
-
-              {/* ИСПРАВЛЕНО: #334155 → #64748B */}
-              <p style={{ color: '#64748B', fontSize: '0.8rem' }}>секунд</p>
+              <p style={{ color: '#94A3B8', fontStyle: 'italic', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                «Почувствуй покой. Подготовься к следующему шагу.»
+              </p>
+              <button style={styles.skipBtn} onClick={skipPause}>Пропустить паузу →</button>
             </div>
+          )}
 
-            {/* Прогресс-бар */}
-            <div style={styles.progressWrap}>
-              <div style={{
-                ...styles.progressBar,
-                width:      `${phaseProgress * 100}%`,
-                background: `linear-gradient(90deg, ${glowColor}66, ${glowColor})`,
-              }} />
+          {/* Персонаж */}
+          {!roundPause && (
+            <div style={styles.characterWrap}>
+              {/* Индикатор ноздри */}
+              {phase?.nostril === 'left' && (
+                <div style={{ position: 'absolute', left: '5%', top: '50%', transform: 'translateY(-50%)', width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(96,165,250,0.2)', border: '2px solid #60A5FA', boxShadow: `${glowSize} rgba(96,165,250,0.5)`, animation: 'pulse-soft 2s ease-in-out infinite' }} />
+              )}
+              {phase?.nostril === 'right' && (
+                <div style={{ position: 'absolute', right: '5%', top: '50%', transform: 'translateY(-50%)', width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(251,191,36,0.2)', border: '2px solid #FBBF24', boxShadow: `${glowSize} rgba(251,191,36,0.5)`, animation: 'pulse-soft 2s ease-in-out infinite' }} />
+              )}
+              {phase?.nostril === 'both' && (
+                <>
+                  <div style={{ position: 'absolute', left: '5%', top: '50%', transform: 'translateY(-50%)', width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(167,139,250,0.2)', border: '2px solid #A78BFA', boxShadow: `${glowSize} rgba(167,139,250,0.4)`, animation: 'pulse-soft 2s ease-in-out infinite' }} />
+                  <div style={{ position: 'absolute', right: '5%', top: '50%', transform: 'translateY(-50%)', width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(167,139,250,0.2)', border: '2px solid #A78BFA', boxShadow: `${glowSize} rgba(167,139,250,0.4)`, animation: 'pulse-soft 2s ease-in-out infinite' }} />
+                </>
+              )}
+
+              {settings.visual.characterAnimationEnabled ? (
+                <motion.img
+                  key={phase?.type}
+                  src={profile?.character === 'female' ? '/images/chars/char-lila.png' : '/images/chars/char-arya.png'}
+                  alt="персонаж"
+                  animate={{ scale: phase?.type === 'inhale' ? amplitude : phase?.type === 'hold' ? amplitude * 0.97 : 1 }}
+                  transition={{ duration: phase?.duration ?? 4, ease: 'easeInOut' }}
+                  style={{ height: '160px', width: 'auto', filter: `drop-shadow(0 0 20px ${currentColor}66)`, position: 'relative', zIndex: 1 }}
+                />
+              ) : (
+                <img
+                  src={profile?.character === 'female' ? '/images/chars/char-lila.png' : '/images/chars/char-arya.png'}
+                  alt="персонаж"
+                  style={{ height: '160px', width: 'auto', filter: `drop-shadow(0 0 20px ${currentColor}66)`, position: 'relative', zIndex: 1 }}
+                />
+              )}
             </div>
+          )}
 
-            {/* Точки фаз */}
-            <div style={styles.dots}>
+          {/* Фаза */}
+          {!roundPause && (
+            <div style={{ textAlign: 'center', marginBottom: '0.75rem' }}>
+              <p style={{ color: '#64748B', fontSize: '0.72rem', letterSpacing: '0.2em', marginBottom: '0.4rem' }}>СЕЙЧАС</p>
+              <motion.h2
+                key={phase?.phase}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(1.6rem, 4vw, 2.2rem)', color: currentColor, marginBottom: '0.5rem', fontWeight: 700 }}
+              >
+                {phase?.labelRu}
+              </motion.h2>
+              <p style={{ fontSize: 'clamp(2rem, 6vw, 3rem)', fontFamily: 'Georgia, serif', fontWeight: 700, color: '#F1F5F9', lineHeight: 1 }}>
+                {Math.max(0, phase ? phase.duration - session.secondsInPhase : 0)}
+              </p>
+              <p style={{ color: '#64748B', fontSize: '0.8rem', marginTop: '0.2rem' }}>секунд</p>
+            </div>
+          )}
+
+          {/* Прогресс-бар */}
+          {!roundPause && (
+            <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', marginBottom: '1rem', overflow: 'hidden' }}>
+              <motion.div
+                animate={{ width: `${phaseProgress * 100}%` }}
+                transition={{ duration: 0.5, ease: 'linear' }}
+                style={{ height: '100%', background: `linear-gradient(90deg, ${currentColor}88, ${currentColor})`, borderRadius: '2px' }}
+              />
+            </div>
+          )}
+
+          {/* Точки цикла */}
+          {!roundPause && (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
               {phases.map((p, i) => {
-                const isActive = i === session.currentPhaseIndex;
-                const isDone   = i < session.currentPhaseIndex;
-                const c = p.type === 'hold' ? '#A78BFA' : p.nostril === 'left' ? '#60A5FA' : '#FBBF24';
+                const active = i === session.currentPhaseIndex;
+                const done   = i < session.currentPhaseIndex;
+                const dotColor = phaseColors[p.phase] ?? '#475569';
+                const dotStyle = settings.visual.dotStyle;
                 return (
                   <div key={i} style={{
-                    width:      isActive ? '14px' : '10px',
-                    height:     isActive ? '14px' : '10px',
-                    borderRadius: '50%',
-                    background: isActive ? c : isDone ? `${c}44` : 'rgba(255,255,255,0.08)',
-                    boxShadow:  isActive ? `0 0 12px 4px ${c}99` : 'none',
-                    transition: 'all 0.4s ease',
+                    width:      active ? '12px' : '9px',
+                    height:     active ? '12px' : '9px',
+                    borderRadius: dotStyle === 'circles' ? '50%' : dotStyle === 'stars' ? '2px' : '3px',
+                    transform:  dotStyle === 'stars' ? 'rotate(45deg)' : 'none',
+                    background: active ? dotColor : done ? `${dotColor}55` : 'rgba(255,255,255,0.1)',
+                    boxShadow:  active ? `0 0 8px 2px ${dotColor}88` : 'none',
+                    transition: 'all 0.3s',
                   }} />
                 );
               })}
             </div>
+          )}
 
-            {/* Подписи фаз — ИСПРАВЛЕНО: #1E293B / #0F172A → читаемые */}
-            <div style={styles.phaseHints}>
-              {phases.map((p, i) => {
-                const c = p.type === 'hold' ? '#A78BFA' : p.nostril === 'left' ? '#60A5FA' : '#FBBF24';
-                const isActive = i === session.currentPhaseIndex;
-                return (
-                  <span key={i} style={{
-                    fontSize:   '0.72rem',
-                    color:      isActive ? c : '#475569',
-                    transition: 'color 0.3s',
-                  }}>
-                    {p.labelRu} {p.duration}с
-                    {i < phases.length - 1 && (
-                      <span style={{ color: '#334155', margin: '0 4px' }}>·</span>
-                    )}
-                  </span>
-                );
-              })}
+          {/* Подписи фаз */}
+          {!roundPause && (
+            <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.75rem' }}>
+              {phases.map((p, i) => (
+                <span key={i} style={{
+                  fontSize: '0.7rem',
+                  color: i === session.currentPhaseIndex ? phaseColors[p.phase] : '#475569',
+                  fontWeight: i === session.currentPhaseIndex ? 600 : 400,
+                }}>
+                  {p.labelRu} {p.duration}с{i < phases.length - 1 ? ' ·' : ''}
+                </span>
+              ))}
             </div>
-          </>
-        )}
+          )}
 
-        {/* Цитата локации — ИСПРАВЛЕНО: #1E293B/#0F172A → #94A3B8/#64748B */}
-        <div style={styles.quoteBox}>
-          <p style={styles.quoteText}>«{location.quote}»</p>
-          <p style={styles.quoteSource}>— {location.quoteSource}</p>
-        </div>
-
-        {/* Управление */}
-        <div style={styles.controls}>
-          <button style={styles.controlBtn} onClick={handlePause}>
-            {session.isPaused ? '▶ Продолжить' : '⏸ Пауза'}
-          </button>
-          <button style={{ ...styles.controlBtn, color: '#475569' }} onClick={handleStop}>
-            ✕ Стоп
-          </button>
-        </div>
-
-      </div>
-    </main>
-  );
-}
-
-/* ─── АУДИО ПАНЕЛЬ ──────────────────────────────────────── */
-const btnSmall: React.CSSProperties = {
-  background:   'rgba(255,255,255,0.06)',
-  border:       '1px solid rgba(255,255,255,0.1)',
-  color:        '#94A3B8',
-  borderRadius: '0.5rem',
-  padding:      '0.3rem 0.75rem',
-  fontSize:     '0.78rem',
-  cursor:       'pointer',
-  flex:         1,
-  textAlign:    'center',
-};
-
-function AudioPanel({ settings, updateMusic, open, setOpen, locationId, onPause, isPaused }: {
-  settings:     any;
-  updateMusic:  (data: any) => void;
-  open:         boolean;
-  setOpen:      (v: boolean | ((prev: boolean) => boolean)) => void;
-  locationId:   number;
-  onPause:      () => void;
-  isPaused:     boolean;
-}) {
-  const { music }       = settings;
-  const currentIndex    = BIRDS_TRACKS.findIndex((t: any) => t.id === music.selectedBirdsTrack);
-  const currentTrack    = BIRDS_TRACKS[currentIndex];
-
-  function prevTrack() {
-    const i     = currentIndex <= 0 ? BIRDS_TRACKS.length - 1 : currentIndex - 1;
-    const track = BIRDS_TRACKS[i];
-    updateMusic({ selectedBirdsTrack: track.id });
-    if (music.natureSoundsEnabled) playBirds(track.id, music.natureSoundsVolume / 100);
-  }
-
-  function nextTrack() {
-    const i     = currentIndex >= BIRDS_TRACKS.length - 1 ? 0 : currentIndex + 1;
-    const track = BIRDS_TRACKS[i];
-    updateMusic({ selectedBirdsTrack: track.id });
-    if (music.natureSoundsEnabled) playBirds(track.id, music.natureSoundsVolume / 100);
-  }
-
-  function toggleBirds() {
-    if (music.natureSoundsEnabled) {
-      stopBirds();
-      updateMusic({ natureSoundsEnabled: false });
-    } else {
-      updateMusic({ natureSoundsEnabled: true });
-      playBirds(music.selectedBirdsTrack, music.natureSoundsVolume / 100);
-    }
-  }
-
-  function toggleLocationSound() {
-    if (music.musicEnabled) {
-      stopBgSound();
-      updateMusic({ musicEnabled: false });
-    } else {
-      updateMusic({ musicEnabled: true });
-      playBgSound(locationId, music.musicVolume / 100);
-    }
-  }
-
-  function toggleAllSound() {
-    const allOff = !music.musicEnabled && !music.natureSoundsEnabled;
-    if (allOff) {
-      updateMusic({ musicEnabled: true, natureSoundsEnabled: true });
-      playBgSound(locationId, music.musicVolume / 100);
-      playBirds(music.selectedBirdsTrack, music.natureSoundsVolume / 100);
-    } else {
-      stopBgSound(); stopBirds();
-      updateMusic({ musicEnabled: false, natureSoundsEnabled: false });
-    }
-  }
-
-  const allOff = !music.musicEnabled && !music.natureSoundsEnabled;
-
-  return (
-    <div style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 100 }}>
-
-      {/* Кнопка открытия */}
-      <button
-        onClick={() => setOpen((o: boolean) => !o)}
-        style={{
-          background:    open ? 'rgba(167,139,250,0.2)' : 'rgba(255,255,255,0.06)',
-          border:        `1px solid ${open ? 'rgba(167,139,250,0.4)' : 'rgba(255,255,255,0.1)'}`,
-          borderRadius:  '999px',
-          padding:       '0.4rem 0.9rem',
-          color:         open ? '#A78BFA' : '#64748B',
-          cursor:        'pointer',
-          fontSize:      '0.8rem',
-          backdropFilter: 'blur(12px)',
-          transition:    'all 0.2s',
-        }}
-      >
-        🎵 {open ? '✕' : 'Звук'}
-      </button>
-
-      {/* Панель */}
-      {open && (
-        <div style={{
-          marginTop:    '0.5rem',
-          background:   'rgba(15,23,42,0.95)',
-          backdropFilter: 'blur(20px)',
-          border:       '1px solid rgba(255,255,255,0.08)',
-          borderRadius: '1.25rem',
-          padding:      '1rem',
-          width:        '260px',
-          boxShadow:    '0 8px 32px rgba(0,0,0,0.5)',
-        }}>
-
-          {/* Пауза/Продолжить */}
-          <button onClick={onPause} style={{
-            width:        '100%',
-            background:   isPaused ? 'rgba(52,211,153,0.12)' : 'rgba(167,139,250,0.1)',
-            border:       `1px solid ${isPaused ? 'rgba(52,211,153,0.3)' : 'rgba(167,139,250,0.25)'}`,
-            color:        isPaused ? '#34D399' : '#A78BFA',
-            borderRadius: '0.75rem',
-            padding:      '0.55rem',
-            fontSize:     '0.85rem',
-            cursor:       'pointer',
-            marginBottom: '0.75rem',
-            fontWeight:   600,
-          }}>
-            {isPaused ? '▶ Продолжить практику' : '⏸ Пауза практики'}
-          </button>
-
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', marginBottom: '0.75rem' }} />
-
-          {/* Природа */}
-          <div style={{ marginBottom: '0.75rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <span style={{ color: '#64748B', fontSize: '0.75rem' }}>🌿 ПРИРОДА</span>
-              <button onClick={toggleBirds} style={{
-                background:   music.natureSoundsEnabled ? 'rgba(52,211,153,0.15)' : 'rgba(255,255,255,0.05)',
-                border:       `1px solid ${music.natureSoundsEnabled ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.08)'}`,
-                color:        music.natureSoundsEnabled ? '#34D399' : '#64748B',
-                borderRadius: '999px', padding: '0.2rem 0.6rem',
-                fontSize:     '0.72rem', cursor: 'pointer',
-              }}>
-                {music.natureSoundsEnabled ? '● вкл' : '○ выкл'}
-              </button>
+          {/* Цитата локации */}
+          {!roundPause && (
+            <div style={{ textAlign: 'center', padding: '0.75rem 1rem', marginBottom: '0.75rem' }}>
+              <p style={{ color: '#94A3B8', fontStyle: 'italic', fontSize: '0.82rem', lineHeight: 1.6, marginBottom: '0.25rem' }}>
+                «{location.quote}»
+              </p>
+              <p style={{ color: '#64748B', fontSize: '0.72rem' }}>— {location.quoteSource}</p>
             </div>
+          )}
 
-            <p style={{
-              color:         music.natureSoundsEnabled ? '#94A3B8' : '#475569',
-              fontSize:      '0.78rem',
-              textAlign:     'center',
-              marginBottom:  '0.5rem',
-              overflow:      'hidden',
-              textOverflow:  'ellipsis',
-              whiteSpace:    'nowrap',
-            }}>
-              {currentTrack?.label ?? '—'}
-            </p>
-
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button onClick={prevTrack} style={btnSmall}>◀ Пред</button>
-              <button onClick={nextTrack} style={btnSmall}>След ▶</button>
-            </div>
-          </div>
-
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', margin: '0.75rem 0' }} />
-
-          {/* Локация */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-            <span style={{ color: '#64748B', fontSize: '0.75rem' }}>🌆 Звук локации</span>
-            <button onClick={toggleLocationSound} style={{
-              background:   music.musicEnabled ? 'rgba(96,165,250,0.15)' : 'rgba(255,255,255,0.05)',
-              border:       `1px solid ${music.musicEnabled ? 'rgba(96,165,250,0.3)' : 'rgba(255,255,255,0.08)'}`,
-              color:        music.musicEnabled ? '#60A5FA' : '#64748B',
-              borderRadius: '999px', padding: '0.2rem 0.6rem',
-              fontSize:     '0.72rem', cursor: 'pointer',
-            }}>
-              {music.musicEnabled ? '● вкл' : '○ выкл'}
+          {/* Кнопки */}
+          <div style={styles.controls}>
+            <button style={styles.controlBtn} onClick={handlePause}>
+              {session.isPaused ? '▶ Продолжить' : '⏸ Пауза'}
+            </button>
+            <button style={{ ...styles.controlBtn, color: '#475569' }} onClick={handleStop}>
+              ✕ Стоп
             </button>
           </div>
 
-          {/* Выключить всё */}
-          <button onClick={toggleAllSound} style={{
-            width:        '100%',
-            background:   allOff ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.04)',
-            border:       `1px solid ${allOff ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.06)'}`,
-            color:        allOff ? '#F87171' : '#64748B',
-            borderRadius: '0.75rem', padding: '0.5rem',
-            fontSize:     '0.8rem', cursor: 'pointer', marginBottom: '0.75rem',
-          }}>
-            {allOff ? '🔊 Включить всё' : '🔇 Выключить всё'}
-          </button>
-
-          {/* Подсказка — ИСПРАВЛЕНО: #1E293B → #475569 */}
-          <p style={{ color: '#475569', fontSize: '0.68rem', textAlign: 'center' }}>
-            Подробные настройки → Главная → ⚙️
-          </p>
-
         </div>
-      )}
-    </div>
+      </main>
+    </PageTransition>
   );
 }
 
-/* ─── ЭКРАН ЗАВЕРШЕНИЯ ──────────────────────────────────── */
-function FinishScreen({ heroName, rounds, onRepeat, onHome, onMap, currentLocationId }: {
-  heroName:          string;
-  rounds:            number;
-  onRepeat:          () => void;
-  onHome:            () => void;
-  onMap:             () => void;
-  currentLocationId: number;
+// ── ФИНИШНЫЙ ЭКРАН ────────────────────────────────────
+function FinishScreen({ rounds, sessionSecs, location, profile, onHome, onAgain }: {
+  rounds: number; sessionSecs: number; location: any;
+  profile: any; onHome: () => void; onAgain: () => void;
 }) {
-  const { setStartLocation } = usePracticeSettings();
-  const { profile }          = useProfileStore();
-  const nextLocation  = LOCATIONS.find(l => l.id === currentLocationId + 1);
-  const nextUnlocked  = nextLocation && profile?.locationsUnlocked.includes(nextLocation.id);
+  const minutes      = Math.floor(sessionSecs / 60);
+  const secs         = sessionSecs % 60;
+  const totalCycles  = rounds * CYCLES_PER_ROUND;
+  const streak       = profile?.currentStreak ?? 0;
+  const isNewStreak  = streak > 1;
 
   return (
-    <main style={{
-      minHeight:      '100dvh',
-      background:     '#030712',
-      display:        'flex',
-      alignItems:     'center',
-      justifyContent: 'center',
-      padding:        '2rem',
-    }}>
-      <div style={{ textAlign: 'center', maxWidth: '360px' }}>
+    <PageTransition>
+      <main style={{ ...styles.page, backgroundImage: `url('${bgUrl(location.id)}')` }}>
+        <div style={styles.bgOverlay} />
+        <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', maxWidth: '420px', margin: '0 auto', padding: '2rem 1rem', width: '100%' }}>
 
-        <div style={{ fontSize: '5rem', marginBottom: '1.5rem' }}>🕉️</div>
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', delay: 0.1 }}
+            style={{ fontSize: '4rem', marginBottom: '1rem' }}>
+            🕉️
+          </motion.div>
 
-        <h1 style={{
-          fontFamily:   'Georgia, serif',
-          fontSize:     '2rem',
-          color:        '#FBBF24',
-          marginBottom: '1rem',
-        }}>
-          Путь завершён
-        </h1>
+          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+            style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', background: 'linear-gradient(135deg, #FBBF24, #FCD34D)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', marginBottom: '0.5rem' }}>
+            Практика завершена
+          </motion.h1>
 
-        <p style={{ color: '#94A3B8', lineHeight: 1.8, marginBottom: '0.5rem' }}>
-          {heroName} завершил {rounds} раундов дыхания.
-        </p>
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+            style={{ color: '#64748B', marginBottom: '1.5rem' }}>
+            {location.emoji} {location.nameRu}
+          </motion.p>
 
-        {/* Следующая локация открыта */}
-        {nextUnlocked && nextLocation && (
-          <div style={{
-            background:   'rgba(167,139,250,0.08)',
-            border:       '1px solid rgba(167,139,250,0.2)',
-            borderRadius: '1rem',
-            padding:      '1rem',
-            margin:       '1rem auto',
-            maxWidth:     '280px',
-          }}>
-            <p style={{ color: '#A78BFA', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
-              ✦ Следующая локация открыта
+          {/* Статистика сессии */}
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            {[
+              { emoji: '⏱️', label: 'Время',   value: `${minutes}м ${secs}с`,  color: '#60A5FA' },
+              { emoji: '🔄', label: 'Раундов', value: rounds,                   color: '#A78BFA' },
+              { emoji: '🌬️', label: 'Циклов',  value: totalCycles,              color: '#34D399' },
+              { emoji: '🔥', label: 'Серия',   value: `${streak} ${streak === 1 ? 'день' : streak < 5 ? 'дня' : 'дней'}`, color: '#FBBF24' },
+            ].map(s => (
+              <div key={s.label} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '1rem', padding: '0.85rem 0.5rem', textAlign: 'center' }}>
+                <p style={{ fontSize: '1.4rem', marginBottom: '0.2rem' }}>{s.emoji}</p>
+                <p style={{ color: s.color, fontSize: '1.2rem', fontFamily: 'Georgia, serif', fontWeight: 700 }}>{s.value}</p>
+                <p style={{ color: '#475569', fontSize: '0.7rem' }}>{s.label}</p>
+              </div>
+            ))}
+          </motion.div>
+
+          {/* Streak сообщение */}
+          {isNewStreak && (
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.6 }}
+              style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: '1rem', padding: '0.85rem 1rem', marginBottom: '1.25rem' }}>
+              <p style={{ color: '#FBBF24', fontSize: '0.95rem', fontWeight: 600 }}>
+                🔥 {streak} {streak < 5 ? 'дня' : 'дней'} подряд!
+              </p>
+              <p style={{ color: '#92400E', fontSize: '0.78rem', marginTop: '0.2rem' }}>
+                Продолжай — завтра серия станет длиннее
+              </p>
+            </motion.div>
+          )}
+
+          {/* Цитата */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '1rem', padding: '1rem 1.25rem', marginBottom: '1.5rem' }}>
+            <p style={{ color: '#94A3B8', fontStyle: 'italic', fontSize: '0.85rem', lineHeight: 1.7, marginBottom: '0.3rem' }}>
+              «{location.quote}»
             </p>
-            <p style={{ color: '#F1F5F9', fontSize: '1rem', marginBottom: '0.75rem' }}>
-              {nextLocation.emoji} {nextLocation.nameRu}
-            </p>
-            <button
-              onClick={() => { setStartLocation(nextLocation.id); onRepeat(); }}
-              style={{
-                background:   'linear-gradient(135deg, #818CF8, #A78BFA)',
-                color:        '#fff',
-                fontWeight:   700,
-                fontSize:     '0.9rem',
-                padding:      '0.6rem 1.5rem',
-                borderRadius: '999px',
-                border:       'none',
-                cursor:       'pointer',
-              }}
-            >
-              → Перейти к {nextLocation.nameRu}
+            <p style={{ color: '#64748B', fontSize: '0.75rem' }}>— {location.quoteSource}</p>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <button onClick={onAgain} style={{ background: 'linear-gradient(135deg, #F59E0B, #FBBF24)', color: '#0a0a0a', fontWeight: 700, fontSize: '1rem', padding: '0.9rem 2rem', borderRadius: '999px', border: 'none', cursor: 'pointer', boxShadow: '0 0 20px rgba(251,191,36,0.3)' }}>
+              🌬️ Ещё раз
             </button>
-          </div>
-        )}
+            <button onClick={onHome} style={{ background: 'rgba(255,255,255,0.05)', color: '#94A3B8', fontSize: '0.95rem', padding: '0.85rem 2rem', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
+              🏠 На главную
+            </button>
+          </motion.div>
 
-        <p style={{
-          color:         '#64748B',
-          fontStyle:     'italic',
-          fontSize:      '0.95rem',
-          lineHeight:    1.7,
-          marginBottom:  '2rem',
-        }}>
-          «Пусть вдох соединяет тебя с жизнью,<br />а выдох — возвращает покой.»
-        </p>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: '260px', margin: '0 auto' }}>
-          <button onClick={onRepeat} style={{
-            background:   'linear-gradient(135deg, #F59E0B, #FBBF24)',
-            color:        '#0a0a0a', fontWeight: 700,
-            fontSize:     '1rem', padding: '0.85rem 2rem',
-            borderRadius: '999px', border: 'none', cursor: 'pointer',
-          }}>
-            🔄 Повторить практику
-          </button>
-          <button onClick={onMap} style={{
-            background:   'rgba(255,255,255,0.05)',
-            color:        '#A78BFA', fontSize: '1rem',
-            padding:      '0.85rem 2rem', borderRadius: '999px',
-            border:       '1px solid rgba(167,139,250,0.2)', cursor: 'pointer',
-          }}>
-            🗺️ Карта пути
-          </button>
-          {/* ИСПРАВЛЕНО: #334155 → #64748B */}
-          <button onClick={onHome} style={{
-            background: 'none', color: '#64748B',
-            fontSize: '0.9rem', padding: '0.5rem',
-            border: 'none', cursor: 'pointer',
-          }}>
-            🏠 На главную
-          </button>
         </div>
-
-      </div>
-    </main>
+      </main>
+    </PageTransition>
   );
 }
 
-/* ─── STYLES ────────────────────────────────────────────── */
+// ── STYLES ────────────────────────────────────────────
 const styles = {
   page: {
-    minHeight:      '100dvh',
-    display:        'flex',
-    flexDirection:  'column' as const,
-    alignItems:     'center',
-    justifyContent: 'center',
-    padding:        'clamp(1rem, 4vw, 1.5rem) 1rem',
-    transition:     'background 1s ease',
-    position:       'relative' as const,
-    background:     '#030712',
+    minHeight: '100dvh', backgroundSize: 'cover', backgroundPosition: 'center',
+    backgroundAttachment: 'fixed', display: 'flex', flexDirection: 'column' as const,
+    alignItems: 'center', position: 'relative' as const,
   },
-
+  bgOverlay: {
+    position: 'absolute' as const, inset: 0,
+    background: 'linear-gradient(to bottom, rgba(3,7,18,0.7) 0%, rgba(3,7,18,0.5) 50%, rgba(3,7,18,0.8) 100%)',
+    zIndex: 1,
+  },
   header: {
-    display:        'flex',
-    justifyContent: 'space-between',
-    width:          '100%',
-    maxWidth:       '480px',
-    marginBottom:   'clamp(0.75rem, 2vw, 1.5rem)',
-    padding:        '0.6rem 1rem',
-    background:     'rgba(255,255,255,0.03)',
-    borderRadius:   '1rem',
-    border:         '1px solid rgba(255,255,255,0.06)',
+    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+    padding: '0.75rem 1rem',
+    marginBottom: '0.5rem', marginTop: '1rem',
+    background: 'rgba(3,7,18,0.6)', backdropFilter: 'blur(12px)',
+    borderRadius: '1rem',
+    border: '1px solid rgba(255,255,255,0.06)',
   } as React.CSSProperties,
-
-  locationName: { color: '#94A3B8', fontSize: '0.9rem', marginBottom: '0.2rem' },
-  roundInfo:    { color: '#64748B', fontSize: '0.78rem' },
-  timer:        { color: '#FBBF24', fontFamily: 'Georgia, serif', fontSize: '1.1rem' },
-  /* ИСПРАВЛЕНО: cycleInfo был #334155 */
+  locationName: { color: '#F1F5F9', fontSize: '0.9rem', fontWeight: 600, marginBottom: '0.15rem' },
+  roundInfo:    { color: '#64748B', fontSize: '0.75rem' },
+  timer:        { color: '#A78BFA', fontSize: '1rem', fontFamily: 'Georgia, serif', fontWeight: 700, marginBottom: '0.15rem' },
   cycleInfo:    { color: '#475569', fontSize: '0.75rem' },
-
   characterWrap: {
-    position:       'relative' as const,
-    display:        'flex',
-    alignItems:     'center',
-    justifyContent: 'center',
-    marginBottom:   '1.5rem',
-    height:         '140px',
-    width:          '300px',
+    position: 'relative' as const, display: 'flex', justifyContent: 'center',
+    alignItems: 'center', minHeight: '200px', marginBottom: '1rem',
   },
-
-  progressWrap: {
-    width:        '100%',
-    maxWidth:     '380px',
-    height:       '4px',
-    background:   'rgba(255,255,255,0.06)',
-    borderRadius: '2px',
-    marginBottom: '1.5rem',
-    overflow:     'hidden',
-  },
-
-  progressBar: {
-    height:       '100%',
-    borderRadius: '2px',
-    transition:   'width 0.95s linear',
-  },
-
-  dots: {
-    display:        'flex',
-    gap:            '0.75rem',
-    justifyContent: 'center',
-    alignItems:     'center',
-    marginBottom:   '0.75rem',
-  },
-
-  phaseHints: {
-    display:        'flex',
-    flexWrap:       'wrap' as const,
-    justifyContent: 'center',
-    marginBottom:   '1.5rem',
-    maxWidth:       '400px',
-    gap:            '0.1rem',
-  },
-
-  quoteBox: {
-    textAlign:    'center' as const,
-    marginBottom: '1.5rem',
-    maxWidth:     '360px',
-    padding:      '0 1rem',
-  },
-  /* ИСПРАВЛЕНО: было #1E293B (невидимый) */
-  quoteText:   { color: '#94A3B8', fontStyle: 'italic', fontSize: '0.82rem', lineHeight: 1.6 },
-  /* ИСПРАВЛЕНО: было #0F172A (совсем чёрный) */
-  quoteSource: { color: '#64748B', fontSize: '0.72rem', marginTop: '0.25rem' },
-
-  controls: {
-    display:        'flex',
-    gap:            '1rem',
-    justifyContent: 'center',
-  },
-
-  controlBtn: {
-    background:   'rgba(255,255,255,0.05)',
-    border:       '1px solid rgba(255,255,255,0.08)',
-    color:        '#64748B',
-    fontSize:     '0.9rem',
-    padding:      '0.6rem 1.5rem',
-    borderRadius: '999px',
-    cursor:       'pointer',
-  } as React.CSSProperties,
-
   roundPauseBox: {
-    textAlign:    'center' as const,
-    padding:      '2rem',
-    background:   'rgba(167,139,250,0.06)',
-    border:       '1px solid rgba(167,139,250,0.15)',
-    borderRadius: '1.5rem',
-    maxWidth:     '380px',
-    marginBottom: '1.5rem',
+    background: 'rgba(3,7,18,0.8)', backdropFilter: 'blur(16px)',
+    border: '1px solid rgba(167,139,250,0.2)', borderRadius: '1.5rem',
+    padding: '2rem 1.5rem', textAlign: 'center' as const, marginBottom: '1rem',
   },
-
   skipBtn: {
-    background: 'none',
-    border:     'none',
-    color:      '#64748B',
-    cursor:     'pointer',
-    fontSize:   '0.85rem',
+    background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.3)',
+    color: '#A78BFA', borderRadius: '999px', padding: '0.6rem 1.5rem',
+    cursor: 'pointer', fontSize: '0.85rem',
+  } as React.CSSProperties,
+  controls: {
+    display: 'flex', gap: '0.75rem', justifyContent: 'center',
+    marginTop: 'auto', paddingBottom: '2rem', paddingTop: '0.5rem',
+  },
+  controlBtn: {
+    background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)',
+    border: '1px solid rgba(255,255,255,0.12)', color: '#94A3B8',
+    borderRadius: '999px', padding: '0.75rem 1.75rem',
+    cursor: 'pointer', fontSize: '0.95rem', transition: 'all 0.2s',
+    minWidth: '120px',
   } as React.CSSProperties,
 };
-

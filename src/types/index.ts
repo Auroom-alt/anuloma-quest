@@ -1,78 +1,47 @@
 export type CharacterGender = 'male' | 'female';
 
 export interface BreathingCycle {
-  inhale: number;
-  hold: number;
-  exhale: number;
-  label: string;
+  inhale: number; hold: number; exhale: number; label: string;
 }
 
-export type BreathPhase =
-  | 'inhale-left'
-  | 'hold-1'
-  | 'exhale-right'
-  | 'inhale-right'
-  | 'hold-2'
-  | 'exhale-left';
+export type BreathPhase = 'inhale-left' | 'hold-1' | 'exhale-right' | 'inhale-right' | 'hold-2' | 'exhale-left';
 
 export interface Location {
-  id: number;
-  slug: string;
-  nameRu: string;
-  emoji: string;
-  symbolRu: string;
-  bgFrom: string;
-  bgTo: string;
-  quote: string;
-  quoteSource: string;
-  gradient: string; 
+  id: number; slug: string; nameRu: string; emoji: string;
+  symbolRu: string; bgFrom: string; bgTo: string;
+  quote: string; quoteSource: string; gradient: string;
 }
 
 export interface UserProfile {
-  heroName: string;
-  character: CharacterGender;
-  totalRoundsCompleted: number;
-  totalTimeSeconds: number;
-  totalBreathCycles: number;   // ← добавь эту строку
-  locationsUnlocked: number[];
-  createdAt: string;
+  heroName: string; character: CharacterGender;
+  totalRoundsCompleted: number; totalTimeSeconds: number; totalBreathCycles: number;
+  locationsUnlocked: number[]; createdAt: string;
+  // Streak система
+  practiceHistory:  string[];      // ["2026-02-23", "2026-02-24"]
+  currentStreak:    number;
+  longestStreak:    number;
+  lastPracticeDate: string | null;
 }
 
-export interface PracticeSettings {
-  rounds: number;
-  cycle: BreathingCycle;
-  totalSeconds: number;
-}
+export interface PracticeSettings { rounds: number; cycle: BreathingCycle; totalSeconds: number; }
 
 export interface SessionState {
-  isActive: boolean;
-  isPaused: boolean;
-  currentRound: number;
-  currentCycle: number;
-  currentPhaseIndex: number;
-  currentPhase: BreathPhase | null;
-  secondsInPhase: number;
-  totalSecondsElapsed: number;
+  isActive: boolean; isPaused: boolean;
+  currentRound: number; currentCycle: number;
+  currentPhaseIndex: number; currentPhase: BreathPhase | null;
+  secondsInPhase: number; totalSecondsElapsed: number;
 }
-// ── APP SETTINGS ──────────────────────────────────────
+
 export interface SoundSettings {
-  voiceEnabled: boolean;
-  voiceLanguage: 'ru' | 'en' | 'sanskrit';
-  voiceStyle: 'short' | 'detailed';
-  voiceVolume: number;
-  drumEnabled: boolean;
-  drumVolume: number;
-  guitarEnabled: boolean;
-  guitarVolume: number;
+  voiceEnabled: boolean; voiceLanguage: 'ru' | 'en' | 'sanskrit';
+  voiceStyle: 'short' | 'detailed'; voiceVolume: number;
+  drumEnabled: boolean; drumVolume: number;
+  guitarEnabled: boolean; guitarVolume: number;
 }
 
 export interface MusicSettings {
-  musicEnabled: boolean;
-  musicVolume: number;
-  syncWithBreath: boolean;
-  natureSoundsEnabled: boolean;
-  natureSoundsVolume: number;
-  selectedBirdsTrack: string;  // ← добавь
+  musicEnabled: boolean; musicVolume: number; syncWithBreath: boolean;
+  natureSoundsEnabled: boolean; natureSoundsVolume: number; selectedBirdsTrack: string;
 }
 
 export interface VisualSettings {
@@ -85,16 +54,11 @@ export interface VisualSettings {
 }
 
 export interface AccessibilitySettings {
-  subtitlesEnabled: boolean;
-  highContrastMode: boolean;
-  hapticFeedback: boolean;
-  largeFontMode: boolean;
-  eyesClosedMode: boolean;
+  subtitlesEnabled: boolean; highContrastMode: boolean;
+  hapticFeedback: boolean; largeFontMode: boolean; eyesClosedMode: boolean;
 }
 
 export interface AppSettings {
-  sound: SoundSettings;
-  music: MusicSettings;
-  visual: VisualSettings;
-  accessibility: AccessibilitySettings;
+  sound: SoundSettings; music: MusicSettings;
+  visual: VisualSettings; accessibility: AccessibilitySettings;
 }
