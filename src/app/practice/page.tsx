@@ -243,14 +243,7 @@ export default function PracticePage() {
         {!roundPause && (
           <div style={styles.characterWrap}>
             {phase?.nostril === 'left' && (
-              <img
-                src="/images/ui/lung-left.png" alt="левая ноздря"
-                style={{
-                  position: 'absolute', left: '5%', height: '80px', opacity: 0.6,
-                  filter: 'drop-shadow(0 0 12px #60A5FA)',
-                  animation: 'pulse-soft 2s ease-in-out infinite',
-                }}
-              />
+              <div style={{ position: 'absolute', left: '5%', top: '50%', transform: 'translateY(-50%)', width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(96,165,250,0.2)', border: '2px solid #60A5FA', boxShadow: '0 0 16px 6px rgba(96,165,250,0.45)', animation: 'pulse-soft 2s ease-in-out infinite' }} />
             )}
             <img
               src={profile?.character === 'female'
@@ -268,14 +261,7 @@ export default function PracticePage() {
               }}
             />
             {phase?.nostril === 'right' && (
-              <img
-                src="/images/ui/lung-right.png" alt="правая ноздря"
-                style={{
-                  position: 'absolute', right: '5%', height: '80px', opacity: 0.6,
-                  filter: 'drop-shadow(0 0 12px #FBBF24)',
-                  animation: 'pulse-soft 2s ease-in-out infinite',
-                }}
-              />
+              <div style={{ position: 'absolute', right: '5%', top: '50%', transform: 'translateY(-50%)', width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(251,191,36,0.2)', border: '2px solid #FBBF24', boxShadow: '0 0 16px 6px rgba(251,191,36,0.45)', animation: 'pulse-soft 2s ease-in-out infinite' }} />
             )}
           </div>
         )}
@@ -835,3 +821,4 @@ const styles = {
     fontSize:   '0.85rem',
   } as React.CSSProperties,
 };
+
