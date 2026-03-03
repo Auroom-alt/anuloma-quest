@@ -17,7 +17,7 @@ const TECHNIQUES = {
     tagline:   'Очищение. Пробуждение энергии.',
     color:     '#60A5FA',
     glow:      'rgba(96,165,250,0.5)',
-    inhale:    0.5,  // секунд — пассивный вдох
+    inhale: 2,
     exhale:    0.5,  // секунд — резкий выдох
     desc:      'Ритмичные резкие выдохи через нос. Вдох пассивный, выдох — резкое сокращение живота.',
     details: [
@@ -49,7 +49,8 @@ const TECHNIQUES = {
       '✨ Эффект: разжигает внутренний огонь, заряжает энергией, готовит к пранаяме.',
     ],
     breathLabel: { in: 'Вдох (мощно)', out: 'Выдох (мощно)' },
-  },
+  }, 
+  
 };
 
 type Phase = 'idle' | 'inhale' | 'exhale';
@@ -62,10 +63,14 @@ export default function WarmupPage() {
   const [phase,      setPhase]      = useState<Phase>('idle');
   const [cycles,     setCycles]     = useState(0);
   const [showDetail, setShowDetail] = useState(false);
+  const [inhaleSpeed, setInhaleSpeed] = useState(2); // секунд на вдох: 1-4
   const [hasStarted, setHasStarted] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const t = TECHNIQUES[tech];
+  const t = {
+  ...TECHNIQUES[tech],
+  ...(tech === 'kapalabhati' ? { inhale: inhaleSpeed } : {}),
+};
 
   // Сброс при смене техники
   useEffect(() => {
@@ -170,7 +175,45 @@ export default function WarmupPage() {
             <p style={{ color: '#94A3B8', fontSize: '0.85rem', lineHeight: 1.7, marginBottom: '0.75rem' }}>
               {t.desc}
             </p>
-
+{/* Скорость вдоха — только для Капалабхати */}
+            {tech === 'kapalabhati' && (
+              <div style={{
+                background:   'rgba(96,165,250,0.06)',
+                border:       '1px solid rgba(96,165,250,0.15)',
+                borderRadius: '0.85rem',
+                padding:      '0.75rem 1rem',
+                marginBottom: '0.75rem',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <span style={{ color: '#94A3B8', fontSize: '0.8rem' }}>
+                    🌬️ Длительность вдоха
+                  </span>
+                  <span style={{ color: '#60A5FA', fontSize: '0.85rem', fontWeight: 700, fontFamily: 'Georgia, serif' }}>
+                    {inhaleSpeed} сек
+                  </span>
+                </div>
+                <input
+                  type="range" min={1} max={4} step={1}
+                  value={inhaleSpeed}
+                  onChange={e => {
+                    stopBreathing();
+                    setInhaleSpeed(Number(e.target.value));
+                  }}
+                  style={{ width: '100%', accentColor: '#60A5FA' }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.3rem' }}>
+                  {[1, 2, 3, 4].map(v => (
+                    <span key={v} style={{
+                      fontSize: '0.65rem',
+                      color:    inhaleSpeed === v ? '#60A5FA' : '#334155',
+                      fontWeight: inhaleSpeed === v ? 700 : 400,
+                    }}>
+                      {v === 1 ? '⚡ Быстро' : v === 2 ? 'Умеренно' : v === 3 ? 'Медленно' : '🧘 Глубоко'}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Кнопка подробнее */}
             <button
               onClick={() => setShowDetail(d => !d)}
